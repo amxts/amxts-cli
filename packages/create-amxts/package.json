@@ -3,7 +3,18 @@
 	"type": "module",
 	"version": "0.1.0",
 	"description": "Create an amxts project: npm create amxts@latest",
+	"author": {
+		"name": "kukson777",
+		"url": "https://github.com/kukson777"
+	},
 	"license": "MIT",
+	"homepage": "https://amxts.github.io",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/amxts/amxts-cli.git",
+		"directory": "packages/create-amxts"
+	},
+	"bugs": "https://github.com/amxts/amxts-cli/issues",
 	"keywords": [
 		"amxts",
 		"amxmodx",
@@ -21,5 +32,8 @@
 	},
 	"dependencies": {
 		"@amxts/cli": "^0.1.0"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

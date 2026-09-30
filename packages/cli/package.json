@@ -3,7 +3,18 @@
 	"type": "module",
 	"version": "0.1.0",
 	"description": "The amxts command: create a project or a module, add modules, build, deploy, type-check and test",
+	"author": {
+		"name": "kukson777",
+		"url": "https://github.com/kukson777"
+	},
 	"license": "MIT",
+	"homepage": "https://amxts.github.io",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/amxts/amxts-cli.git",
+		"directory": "packages/cli"
+	},
+	"bugs": "https://github.com/amxts/amxts-cli/issues",
 	"keywords": [
 		"amxts",
 		"amxmodx",
