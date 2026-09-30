@@ -1,7 +1,7 @@
-// What the tests share: running the command as a user runs it, and a folder
-// that is gone after the test.
+// What the tests share: running the command as a user runs it, a project
+// with a stand-in core, and a folder that is gone after the test.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,20 +9,21 @@ import { fileURLToPath } from 'node:url';
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const BIN = join(ROOT, 'packages', 'cli', 'bin', 'amxts.mjs');
 
-/**
- * Runs a script with Node, without colors and as from a shell - no package
- * manager's agent, which `bun run test` would pass on and the command would
- * take for the user's: its exit code and everything it printed.
- */
-export function node(script: string, args: string[], cwd = process.cwd(), env: Record<string, string> = {}) {
+/** The environment a command runs in: no colors, as from a shell - no package manager's agent, which `bun run test` would pass on and the command would take for the user's. */
+function environment(env: Record<string, string>) {
 	const { FORCE_COLOR: _, npm_config_user_agent: __, ...inherited } = process.env;
-	const run = spawnSync(process.platform === 'win32' ? 'node.exe' : 'node', [script, ...args], { cwd, encoding: 'utf8', env: { ...inherited, NO_COLOR: '1', ...env } });
+	return { ...inherited, NO_COLOR: '1', ...env };
+}
+
+/** Runs a script with Node: its exit code and everything it printed. */
+export function node(script: string, args: string[], cwd = process.cwd(), env: Record<string, string> = {}) {
+	const run = spawnSync(process.platform === 'win32' ? 'node.exe' : 'node', [script, ...args], { cwd, encoding: 'utf8', env: environment(env) });
 	return { code: run.status, out: `${run.stdout}${run.stderr}` };
 }
 
 /** Runs the amxts command in a folder. */
-export function amxts(args: string[], cwd = process.cwd()) {
-	return node(BIN, args, cwd);
+export function amxts(args: string[], cwd = process.cwd(), env: Record<string, string> = {}) {
+	return node(BIN, args, cwd, env);
 }
 
 /** A folder for one test, removed after it. */
@@ -33,4 +34,46 @@ export function inTemp(body: (dir: string) => void) {
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
+}
+
+/** The server folder of a stand-in project: its addons/amxts, with the includes beside it. */
+export function serverOf(dir: string) {
+	return join(dir, 'hlds', 'cstrike', 'addons', 'amxts').replace(/\\/g, '/');
+}
+
+/**
+ * A project with a stand-in core in its node_modules: a package.json with this
+ * version, and a cli-api (when `api` is given) whose tasks run `task.mjs` with
+ * Node, which prints what it was asked for - and `prepare` the modules
+ * amxts.config.ts lists. Its server has its includes, so nothing is fetched
+ * before a task; `.env` names it unless `env` says what .env holds.
+ */
+export function standInProject(dir: string, version: string, api?: number, env = `AMXTS_SERVER=${serverOf(dir)}\n`) {
+	writeFileSync(join(dir, 'package.json'), '{ "name": "my-server", "private": true }\n');
+	mkdirSync(join(dir, 'hlds', 'cstrike', 'addons', 'amxmodx', 'scripting', 'include'), { recursive: true });
+	writeFileSync(join(dir, '.env'), env);
+	const core = join(dir, 'node_modules', '@amxts', 'core');
+	mkdirSync(core, { recursive: true });
+	const exports = api === undefined ? { './*': './*' } : { './cli-api': './cli-api.mjs', './package.json': './package.json' };
+	writeFileSync(join(core, 'package.json'), JSON.stringify({ name: '@amxts/core', version, type: 'module', exports }));
+	if (api === undefined) return;
+	writeFileSync(join(core, 'task.mjs'), [
+		'import { existsSync, readFileSync } from "node:fs";',
+		'console.log("task", ...process.argv.slice(2));',
+		'if (process.argv[2] === "prepare" && existsSync("amxts.config.ts")) console.log(readFileSync("amxts.config.ts", "utf8").match(/modules: .*/)[0]);',
+		'',
+	].join('\n'));
+	writeFileSync(join(core, 'cli-api.mjs'), [
+		'import { createRequire } from "node:module";',
+		'import { fileURLToPath } from "node:url";',
+		`export const version = ${JSON.stringify(version)};`,
+		`export const cliApi = ${api};`,
+		'export const fromSource = false;',
+		'export const task = (name, args = []) => ({ runtime: name === "build" ? "bun" : "node", args: [fileURLToPath(new URL("./task.mjs", import.meta.url)), name, ...args] });',
+		// Its Bun is the runtime these tests run on, by its path: not a Bun on PATH.
+		`export const bunBinary = () => ${JSON.stringify(process.execPath)};`,
+		// The TypeScript amxts.config.ts is read with: this repository's.
+		`export const typescript = () => createRequire(${JSON.stringify(join(ROOT, 'package.json'))})("typescript");`,
+		'',
+	].join('\n'));
 }

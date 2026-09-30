@@ -82,7 +82,7 @@ A project needs no Bun of its own.
 | `src/lint.mjs` | what a project and a module get to lint with: the oxlint and oxfmt packages, the `lint` / `lint:fix` scripts, the files that are there only for the lint |
 | `src/init.mjs` | the project starter over `templates/project/` |
 | `src/init-module.mjs` | the module starter over `templates/module/` |
-| `src/module.mjs`, `src/info.mjs` | `module add` / `list`, `info` |
+| `src/module.mjs`, `src/info.mjs` | `module add` (the install, the config, then `prepare()`, so the editor config names the module) / `list`, `info` |
 | `src/system.mjs` | the server's system for `init`: `hlds_linux` or `hlds.exe` beside its game folder |
 
 ## Starters
@@ -215,8 +215,10 @@ and the lint, `init --module`, the target from a server's includes and
 `--target`. `test/includes.test.ts`: the server's own includes, ReAPI's
 fetched from a release on this machine, `hlds`, a failed or changed
 download, and the `.zip` reader. `test/core.test.ts`: the version range, and a
-project with a stand-in core - none, older, newer, without the cli-api, with
-another `cliApi`, and one whose task runs. `test/system.test.ts`: the
+project with a stand-in core (`standInProject()` in `test/helpers.ts`) -
+none, older, newer, without the cli-api, with another `cliApi`, and one whose
+task runs. `test/project.test.ts`: `module add` preparing after it lists the
+module. `test/system.test.ts`: the
 server's system read off its folder, `--os` kept in `.env` by `init`, and
 `build` and `dev` refusing a system they do not know.
 

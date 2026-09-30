@@ -1,8 +1,9 @@
 // `amxts module add` installs a module and lists it in amxts.config.ts in one
 // step; `amxts module list` shows what the config lists and what is installed:
 //
-//   amxts module add menu-core           npm install -D @amxts/menu-core, and
-//                                        "@amxts/menu-core" into modules in amxts.config.ts
+//   amxts module add menu-core           npm install -D @amxts/menu-core,
+//                                        "@amxts/menu-core" into modules in amxts.config.ts,
+//                                        then amxts prepare, which names it for the editor
 //   amxts module add @you/greeter        any package from npm - with a warning
 //                                        when the amxts catalog does not list it
 //   amxts module add ../greeter          a module from its folder
@@ -13,6 +14,7 @@ import { join } from 'node:path';
 import { installTarget, loadCatalog, resolveModule, taglineOf, withRequired } from './catalog.mjs';
 import { addToConfig, CONFIG_FILE, newConfig, readConfigModules } from './config.mjs';
 import { FROM_SOURCE, installedCore, needLocalCore, needProject, readJson } from './core.mjs';
+import { prepare } from './includes.mjs';
 import { addArgs, commandLine, detectPackageManager, execAmxts, run, versionOf } from './pm.mjs';
 import { c, CliError, log } from './ui.mjs';
 
@@ -59,20 +61,30 @@ export async function moduleAdd(names, options = {}) {
 		modules.push(module.name);
 	}
 	if (options.skipConfig || modules.length === 0) return;
+	if (!await addModules(dir, modules)) return;
 
+	// The editor config names the modules the config lists: prepared again
+	// now that it lists these - the install's own prepare ran before.
+	const projectCore = await installedCore(dir);
+	if (projectCore) await prepare(projectCore);
+}
+
+/** Lists modules in amxts.config.ts, a new one when there is none. Whether it changed. */
+async function addModules(dir, modules) {
 	const path = join(dir, CONFIG_FILE);
 	if (!existsSync(path)) {
 		writeFileSync(path, newConfig(modules));
 		log.success(`Created ${CONFIG_FILE} with ${modules.join(', ')}`);
-		return;
+		return true;
 	}
 	const { text, added } = await addToConfig(readFileSync(path, 'utf8'), modules);
 	if (added.length === 0) {
 		log.info(`${CONFIG_FILE} lists ${modules.join(', ')} already`);
-		return;
+		return false;
 	}
 	writeFileSync(path, text);
 	log.success(`Added ${added.map(name => c.bold(name)).join(', ')} to ${CONFIG_FILE}`);
+	return true;
 }
 
 /** Every installed package with an "amxts" field: node_modules and its scopes. */
