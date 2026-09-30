@@ -18,6 +18,7 @@ import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLo
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
 import { commandLine, execAmxts, installArgs, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
+import { askServer, canAsk, missingServer, serverEnv } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
 import { c, CliError } from './ui.mjs';
@@ -65,7 +66,7 @@ function packageName(dir) {
 
 /** @param {InitOptions} options */
 export async function initProject(options) {
-	const interactive = !options.yes && Boolean(process.stdin.isTTY) && !p.isCI();
+	const interactive = !options.yes && canAsk();
 	const local = options.local ?? FROM_SOURCE;
 	// --local: the core on this machine, and the official modules from the
 	// folders it takes them from.
@@ -141,13 +142,7 @@ export async function initProject(options) {
 	const git = hasGit && (options.git ?? (interactive
 		? answer(await p.confirm({ message: 'Initialize a git repository?', initialValue: true }))
 		: true));
-	const server = options.server ?? (interactive
-		? answer(await p.text({
-				message: `Where is the server? ${c.dim(`its addons/amxts folder, for ${runScript(pm, 'dev')} - empty to skip`)}`,
-				placeholder: process.platform === 'win32' ? 'D:/hlds/cstrike/addons/amxts' : '/srv/hlds/cstrike/addons/amxts',
-				defaultValue: '',
-			}))
-		: '');
+	const server = options.server ?? (interactive ? answer(await askServer(pm)) : '');
 
 	// 7. Which server the project is for: its includes say, when it has them
 	// (addons/amxmodx/scripting/include beside AMXTS_SERVER); else asked.
@@ -228,14 +223,13 @@ export async function initProject(options) {
 		written.push('pnpm-workspace.yaml');
 	}
 	if (server || osLine) {
-		const serverLine = server ? `# Where amxts dev deploys: the addons/amxts folder of the server.\nAMXTS_SERVER=${server.replace(/\\/g, '/')}\n` : '';
-		writeFile(join(root, '.env'), `${serverLine}${osLine}`);
+		writeFile(join(root, '.env'), `${server ? serverEnv(server) : ''}${osLine}`);
 		written.push('.env');
 	}
 
 	const at = relative(process.cwd(), root) || '.';
 	p.log.success(`Created ${c.bold(values.name)} in ${c.cyan(at)}\n${c.dim(written.sort().join('\n'))}`);
-	if (server && !existsSync(server)) p.log.warn(`${server} is not there yet: dev builds, and deploys once it is.`);
+	if (server && !existsSync(server)) p.log.warn(missingServer(server));
 	if (installed.length > modules.length) {
 		p.log.info(installed.filter(each => !modules.includes(each)).map(each => `${shortName(each.name)} comes along: ${modules.filter(module => module.requires.includes(each.name)).map(module => shortName(module.name)).join(', ')} needs it`).join('\n'));
 	}

@@ -83,6 +83,7 @@ postinstall `bun`. `bunFor()` (`src/core.mjs`) берёт его, Bun из PATH 
 | `src/init.mjs` | стартер проекта поверх `templates/project/` |
 | `src/init-module.mjs` | стартер модуля поверх `templates/module/` |
 | `src/module.mjs`, `src/info.mjs` | `module add` (установка, конфиг, затем `prepare()`, чтобы конфиг редактора называл модуль) / `list`, `info` |
+| `src/server.mjs` | сервер, на который выкладывает проект, — `AMXTS_SERVER` в `.env`: вопрос `init`, который `dev` и `build --deploy` задают, когда он не задан, — в терминале, не в CI |
 | `src/system.mjs` | система сервера для `init`: `hlds_linux` или `hlds.exe` рядом с папкой игры |
 
 ## Стартеры
@@ -218,7 +219,9 @@ ReAPI, скачанные с релиза на этой машине, `hlds`, н
 версий и проект с ядром-заглушкой (`standInProject()` в `test/helpers.ts`) —
 без ядра, со старым, с новым, без cli-api, с другим `cliApi` и с тем, чья
 задача запускается. `test/project.test.ts`: `module add`, который готовит
-проект после того, как внёс модуль в конфиг.
+проект после того, как внёс модуль в конфиг; `dev`, который спрашивает сервер
+в терминале (`amxtsInTerminal()`, чей `test/terminal.mjs` делает ввод
+терминалом) и сохраняет его в `.env`, и не спрашивает вне терминала.
 `test/system.test.ts`: система сервера по его папке, `--os`, который `init`
 сохраняет в `.env`, и `build` и `dev`, отказывающиеся от незнакомой системы.
 

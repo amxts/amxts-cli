@@ -1,10 +1,11 @@
-// What the tests share: running the command as a user runs it, a project
-// with a stand-in core, and a folder that is gone after the test.
+// What the tests share: running the command as a user runs it - in a
+// terminal too - a project with a stand-in core, and a folder that is gone
+// after the test.
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const BIN = join(ROOT, 'packages', 'cli', 'bin', 'amxts.mjs');
@@ -24,6 +25,13 @@ export function node(script: string, args: string[], cwd = process.cwd(), env: R
 /** Runs the amxts command in a folder. */
 export function amxts(args: string[], cwd = process.cwd(), env: Record<string, string> = {}) {
 	return node(BIN, args, cwd, env);
+}
+
+/** Runs the amxts command as in a terminal, not in CI, typing `input` - `\r` is Enter - into what it asks. */
+export function amxtsInTerminal(args: string[], cwd: string, input: string) {
+	const terminal = pathToFileURL(join(ROOT, 'test', 'terminal.mjs')).href;
+	const run = spawnSync(process.platform === 'win32' ? 'node.exe' : 'node', ['--import', terminal, BIN, ...args], { cwd, input, encoding: 'utf8', env: environment({ CI: 'false' }) });
+	return { code: run.status, out: `${run.stdout}${run.stderr}` };
 }
 
 /** A folder for one test, removed after it. */

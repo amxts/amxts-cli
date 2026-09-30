@@ -83,6 +83,7 @@ A project needs no Bun of its own.
 | `src/init.mjs` | the project starter over `templates/project/` |
 | `src/init-module.mjs` | the module starter over `templates/module/` |
 | `src/module.mjs`, `src/info.mjs` | `module add` (the install, the config, then `prepare()`, so the editor config names the module) / `list`, `info` |
+| `src/server.mjs` | the server a project deploys to, `AMXTS_SERVER` in `.env`: the question `init` asks, and `dev` and `build --deploy` ask when it is not set - in a terminal, not in CI |
 | `src/system.mjs` | the server's system for `init`: `hlds_linux` or `hlds.exe` beside its game folder |
 
 ## Starters
@@ -218,7 +219,9 @@ download, and the `.zip` reader. `test/core.test.ts`: the version range, and a
 project with a stand-in core (`standInProject()` in `test/helpers.ts`) -
 none, older, newer, without the cli-api, with another `cliApi`, and one whose
 task runs. `test/project.test.ts`: `module add` preparing after it lists the
-module. `test/system.test.ts`: the
+module; `dev` asking for the server in a terminal (`amxtsInTerminal()`, whose
+`test/terminal.mjs` makes the input a terminal) and keeping it in `.env`, and
+not asking elsewhere. `test/system.test.ts`: the
 server's system read off its folder, `--os` kept in `.env` by `init`, and
 `build` and `dev` refusing a system they do not know.
 

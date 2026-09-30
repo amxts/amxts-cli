@@ -9,9 +9,10 @@
 // (core.mjs); test runs bun test.
 import process from 'node:process';
 import { GLOBAL_FLAGS, parseArgs } from './args.mjs';
-import { needBun, projectCore, runTask, runTaskOrExit, VERSION } from './core.mjs';
+import { needBun, needProject, projectCore, runTask, runTaskOrExit, VERSION } from './core.mjs';
 import { prepare, TARGETS } from './includes.mjs';
-import { PACKAGE_MANAGERS, run } from './pm.mjs';
+import { detectPackageManager, PACKAGE_MANAGERS, run } from './pm.mjs';
+import { ensureServer } from './server.mjs';
 import { SYSTEMS } from './system.mjs';
 import { banner, c, CliError, closest, log, report } from './ui.mjs';
 
@@ -85,8 +86,9 @@ export const COMMANDS = {
 				throw new CliError('The Docker server is Linux: --docker builds for Linux.', 'Leave out --os.');
 			const core = await projectCore();
 			banner(core.version, 'dev');
-			await prepare(core);
 			// The container reads dist/ where it is: nothing to deploy, and AMXTS_SERVER is not asked.
+			if (!values.docker) await ensureServer(needProject(), detectPackageManager());
+			await prepare(core);
 			if (values.docker) runTaskOrExit(core, 'build', ['--watch', '--docker', '--os', 'linux']);
 			else runTaskOrExit(core, 'build', ['--deploy', '--watch', ...osArgs(values)]);
 		},
@@ -104,6 +106,7 @@ export const COMMANDS = {
 			const os = osArgs(values);
 			const core = await projectCore();
 			banner(core.version, 'build');
+			if (values.deploy) await ensureServer(needProject(), detectPackageManager());
 			await prepare(core);
 			runTaskOrExit(core, 'build', [...(values.deploy ? ['--deploy'] : []), ...(values.watch ? ['--watch'] : []), ...os]);
 		},
