@@ -8,7 +8,7 @@
 //   ../greeter, file:../x      the package in that folder
 //   menu-core --local          the folder the core on this machine takes an
 //                              official module from (its package.json's
-//                              `file:` link) - until they are on npm
+//                              `file:` link), for working on them
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';

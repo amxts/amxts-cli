@@ -73,12 +73,6 @@ npx amxts info             # версии и настройки для сооб�
 параметры. Каждая команда описана на странице
 [команда amxts](https://amxts.github.io/ru/docs/getting-started/cli).
 
-> [!WARNING]
-> Пакетов в npm пока нет. До тех пор склонируйте этот репозиторий рядом с
-> ядром и официальными модулями и создавайте проект с `--local` — он
-> подключает их ссылками, а не ставит:
-> `node packages/cli/bin/amxts.mjs init my-server --local`.
-
 ## Как она находит ядро
 
 `@amxts/core` зависит от `@amxts/cli` и несёт bin `amxts`, который её

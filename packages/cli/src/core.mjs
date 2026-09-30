@@ -31,7 +31,8 @@ export const CLI_API = 3;
 /**
  * Run from a checkout of the command's repository (npm link, a clone) rather
  * than from npm: then a new project takes the core and the official modules
- * from this machine by default, as --local says - they are not on npm to fetch.
+ * from this machine by default, as --local says: the checkout is for working
+ * on them together.
  */
 export const FROM_SOURCE = existsSync(join(CLI_DIR, '..', '..', '.git')) && readJson(join(CLI_DIR, '..', '..', 'package.json'))?.name === 'amxts-cli';
 

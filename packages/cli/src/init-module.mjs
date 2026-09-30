@@ -10,7 +10,7 @@
 // user.name) as {{placeholders}}; `// #if natives` blocks are kept only with
 // --natives. The core is a peer dependency, the range this command works with;
 // with --local (the default from a checkout) it is also a dev dependency
-// linked to the core on this machine, since it is not on npm to install.
+// linked to the core on this machine, which it is developed against.
 import { existsSync, readdirSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import process from 'node:process';

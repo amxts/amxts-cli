@@ -176,9 +176,10 @@ npm run lint:fix
 
 ## `--local`
 
-Until the packages are on npm, `--local` takes the core from this machine and
-the official modules of the catalog from the folders that core's
-`package.json` links (`file:`); a community module comes from npm. It is the default when the command runs from a checkout of this
+`--local` is for working on the core, the command and the official modules
+together: it takes the core from this machine and the official modules of the
+catalog from the folders that core's `package.json` links (`file:`); a
+community module comes from npm. It is the default when the command runs from a checkout of this
 repository (`FROM_SOURCE`: a `.git` beside the root `package.json`), and for
 `module add` when the project's core is a checkout.
 

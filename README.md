@@ -73,12 +73,6 @@ npx amxts info             # versions and settings, for a bug report
 command's options. Every command is described on the
 [amxts command](https://amxts.github.io/docs/getting-started/cli) page.
 
-> [!WARNING]
-> The packages are not on npm yet. Until they are, clone this repository
-> beside the core and the official modules, and create a project with
-> `--local`, which links them instead of installing them:
-> `node packages/cli/bin/amxts.mjs init my-server --local`.
-
 ## How it finds the core
 
 `@amxts/core` depends on `@amxts/cli` and carries an `amxts` bin that starts
