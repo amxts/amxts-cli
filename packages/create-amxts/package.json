@@ -1,0 +1,25 @@
+{
+	"name": "create-amxts",
+	"type": "module",
+	"version": "0.1.0",
+	"description": "Create an amxts project: npm create amxts@latest",
+	"license": "MIT",
+	"keywords": [
+		"amxts",
+		"amxmodx",
+		"counter-strike",
+		"create"
+	],
+	"bin": {
+		"create-amxts": "index.mjs"
+	},
+	"files": [
+		"index.mjs"
+	],
+	"engines": {
+		"node": ">=20.12"
+	},
+	"dependencies": {
+		"@amxts/cli": "^0.1.0"
+	}
+}

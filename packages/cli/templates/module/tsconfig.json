@@ -1,0 +1,10 @@
+{
+	"extends": "@amxts/core/as/tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"~/*": ["./node_modules/@amxts/core/as/*"]
+		},
+		"noEmit": true
+	},
+	"include": ["src/**/*.ts"]
+}

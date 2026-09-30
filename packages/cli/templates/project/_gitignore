@@ -1,0 +1,7 @@
+node_modules/
+# amxts prepare: the editor config tsconfig.json extends, the includes it fetches
+.amxts/
+# amxts build
+dist/
+# this machine's settings: AMXTS_SERVER
+.env

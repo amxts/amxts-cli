@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+# packages: whoever installs them resolves their own versions
+bun.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+# Local editor and agent settings
+.claude/

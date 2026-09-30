@@ -1,0 +1,11 @@
+node_modules/
+*.tgz
+# amxts prepare: the editor config the playground extends
+.amxts/
+# amxts build
+dist/
+# a library: the consumer resolves its own versions
+bun.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

@@ -1,0 +1,5 @@
+# oxfmt writes LF: the files it formats keep LF when checked out on Windows too.
+*.json text eol=lf
+*.jsonc text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

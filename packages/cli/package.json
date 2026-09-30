@@ -1,0 +1,34 @@
+{
+	"name": "@amxts/cli",
+	"type": "module",
+	"version": "0.1.0",
+	"description": "The amxts command: create a project or a module, add modules, build, deploy, type-check and test",
+	"license": "MIT",
+	"keywords": [
+		"amxts",
+		"amxmodx",
+		"counter-strike",
+		"cli"
+	],
+	"exports": {
+		".": "./src/main.mjs",
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"amxts": "bin/amxts.mjs"
+	},
+	"files": [
+		"bin",
+		"src",
+		"templates"
+	],
+	"engines": {
+		"node": ">=20.12"
+	},
+	"dependencies": {
+		"@clack/prompts": "^1.8.1"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
