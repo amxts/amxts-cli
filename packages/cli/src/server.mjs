@@ -37,7 +37,8 @@ export function missingServer(server) {
 
 /** `.env`'s lines for the server. */
 export function serverEnv(server) {
-	return `# Where amxts dev deploys: the addons/amxts folder of the server.\nAMXTS_SERVER=${server.replace(/\\/g, '/')}\n`;
+	const hint = server ? '' : '# Left empty, amxts dev asks for it - e.g. D:/hlds/cstrike/addons/amxts.\n';
+	return `# Where amxts dev deploys: the addons/amxts folder of the server.\n${hint}AMXTS_SERVER=${server.replace(/\\/g, '/')}\n`;
 }
 
 /** Sets AMXTS_SERVER in the project's .env: on its line when it has one, else after what is there. */

@@ -222,10 +222,10 @@ export async function initProject(options) {
 		writeFile(join(root, 'pnpm-workspace.yaml'), '# bun\'s install script is not needed: amxts runs the binary of its platform package.\nallowBuilds:\n  bun: false\n');
 		written.push('pnpm-workspace.yaml');
 	}
-	if (server || osLine) {
-		writeFile(join(root, '.env'), `${server ? serverEnv(server) : ''}${osLine}`);
-		written.push('.env');
-	}
+	// Always written, the server's line empty when it was not given: the file
+	// shows where it goes, and amxts dev asks for it.
+	writeFile(join(root, '.env'), `${serverEnv(server ?? '')}${osLine}`);
+	written.push('.env');
 
 	const at = relative(process.cwd(), root) || '.';
 	p.log.success(`Created ${c.bold(values.name)} in ${c.cyan(at)}\n${c.dim(written.sort().join('\n'))}`);

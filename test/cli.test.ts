@@ -187,6 +187,8 @@ describe('the command line', () => {
 			expect(readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8')).not.toContain('@amxts/menu-core');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('modules: [],');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('target: "hlds",');
+			// No server given: .env still names the setting, empty, for amxts dev to ask.
+			expect(readFileSync(join(root, '.env'), 'utf8')).toMatch(/^AMXTS_SERVER=$/m);
 			for (const file of ['.oxlintrc.json', '.oxfmtrc.json', '.gitattributes']) expect(existsSync(join(root, file))).toBe(false);
 			expect(readFileSync(join(root, 'README.md'), 'utf8')).toContain('`pnpm dev`');
 			// pnpm is told bun's install script is not needed, so it does not stop the install.
