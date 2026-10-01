@@ -1,0 +1,37 @@
+# A release of amxts-cli: on its tag v<version>, its GitHub Release with the
+# version's section of CHANGELOG.md as the notes, then @amxts/cli and create-amxts on npm -
+# once the core of that version is there, so all the tags of a release can be
+# pushed at once. Run by hand with the tag, it does the same; what is
+# published already is left as it is. Both steps are amxts/amxts's
+# workflows (release-notes.yml, npm.yml).
+#
+# npm takes @amxts/cli and create-amxts from this file of amxts/amxts-cli, their trusted
+# publisher, without a token.
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release's tag, v<version>
+        required: true
+
+jobs:
+  notes:
+    permissions:
+      contents: write
+    uses: amxts/amxts/.github/workflows/release-notes.yml@main
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
+
+  npm:
+    needs: notes
+    permissions:
+      contents: read
+      id-token: write
+    uses: amxts/amxts/.github/workflows/npm.yml@main
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
+      packages: "@amxts/cli,create-amxts"
