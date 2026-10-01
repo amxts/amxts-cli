@@ -13,7 +13,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
 import process from 'node:process';
 import * as p from '@clack/prompts';
-import { loadCatalog, resolveModule, shortName, specFor, withRequired } from './catalog.mjs';
+import { configEntries, loadCatalog, resolveModule, shortName, specFor, withRequired } from './catalog.mjs';
+import { modulesList } from './config.mjs';
 import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLocalCore, readJson, VERSION } from './core.mjs';
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
@@ -130,9 +131,10 @@ export async function initProject(options) {
 	}
 	const modules = chosen.map(name => resolveModule(name, from));
 	for (const module of modules.filter(each => !each.dir && !each.listed)) p.log.warn(`${module.name} is not in the amxts catalog: it is installed from npm as it is`);
-	// What a chosen module requires is installed with it; the config lists
-	// only what was chosen, and the build brings the rest along.
+	// What a chosen module requires is installed with it, and the config
+	// lists it right after, with a comment naming who needs it.
 	const installed = withRequired(modules, from);
+	const entries = configEntries(installed, modules);
 
 	// 4. oxlint and oxfmt, 5. git, 6. the server.
 	const lint = options.lint ?? (interactive
@@ -180,7 +182,7 @@ export async function initProject(options) {
 	const values = {
 		'name': packageName(root),
 		'author': gitAuthor(),
-		'modules': modules.map(module => JSON.stringify(module.name)).join(', '),
+		'modules': modulesList(entries),
 		'target': target,
 		'install': install,
 		'amxts': amxts,
@@ -230,9 +232,8 @@ export async function initProject(options) {
 	const at = relative(process.cwd(), root) || '.';
 	p.log.success(`Created ${c.bold(values.name)} in ${c.cyan(at)}\n${c.dim(written.sort().join('\n'))}`);
 	if (server && !existsSync(server)) p.log.warn(missingServer(server));
-	if (installed.length > modules.length) {
-		p.log.info(installed.filter(each => !modules.includes(each)).map(each => `${shortName(each.name)} comes along: ${modules.filter(module => module.requires.includes(each.name)).map(module => shortName(module.name)).join(', ')} needs it`).join('\n'));
-	}
+	const required = entries.filter(each => each.by.length);
+	if (required.length) p.log.info(required.map(each => `${shortName(each.name)} is listed too: ${each.by.join(', ')} needs it`).join('\n'));
 
 	// The install.
 	let installedOk = false;

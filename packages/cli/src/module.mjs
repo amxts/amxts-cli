@@ -1,9 +1,10 @@
 // `amxts module add` installs a module and lists it in amxts.config.ts in one
 // step; `amxts module list` shows what the config lists and what is installed:
 //
-//   amxts module add menu-core           npm install -D @amxts/menu-core,
-//                                        "@amxts/menu-core" into modules in amxts.config.ts,
-//                                        then amxts prepare, which names it for the editor
+//   amxts module add menu-core           npm install -D @amxts/menu-core @amxts/config-core,
+//                                        both into modules in amxts.config.ts - config-core
+//                                        after menu-core, "// needed by menu-core" -
+//                                        then amxts prepare, which names them for the editor
 //   amxts module add @you/greeter        any package from npm - with a warning
 //                                        when the amxts catalog does not list it
 //   amxts module add ../greeter          a module from its folder
@@ -11,7 +12,7 @@
 //                                        what else the catalog has
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { installTarget, loadCatalog, resolveModule, taglineOf, withRequired } from './catalog.mjs';
+import { configEntries, installTarget, loadCatalog, resolveModule, taglineOf, withRequired } from './catalog.mjs';
 import { addToConfig, CONFIG_FILE, newConfig, readConfigModules } from './config.mjs';
 import { FROM_SOURCE, installedCore, needLocalCore, needProject, readJson } from './core.mjs';
 import { prepare } from './includes.mjs';
@@ -40,7 +41,8 @@ export async function moduleAdd(names, options = {}) {
 	const deps = { ...project?.dependencies, ...project?.devDependencies };
 	// What a module needs comes along, unless the project has it: yarn does
 	// not install peer dependencies by itself.
-	const toInstall = withRequired(wanted, from, name => Boolean(deps[name]));
+	const all = withRequired(wanted, from);
+	const toInstall = all.filter(module => wanted.includes(module) || !deps[module.name]);
 
 	if (!options.skipInstall) {
 		if (!versionOf(pm)) throw new CliError(`${pm} is not installed, and this project uses it`, `Install ${pm}, or add the package by hand and run amxts module add ${names.join(' ')} --skip-install.`);
@@ -50,18 +52,16 @@ export async function moduleAdd(names, options = {}) {
 		if (result.code !== 0) throw new CliError(`${commandLine(argv)} failed`, 'The package manager says why, above.');
 	}
 
-	// Only a package that is a module goes into the config.
-	const modules = [];
-	for (const module of wanted) {
+	// Only a package that is a module goes into the config, with what it
+	// requires right after it.
+	const notModules = wanted.filter((module) => {
 		const json = readJson(join(dir, 'node_modules', module.name, 'package.json')) ?? (module.dir ? readJson(join(module.dir, 'package.json')) : null);
-		if (json && !json.amxts?.module) {
-			log.warn(`${module.name} is not an amxts module (its package.json has no "amxts" field): installed, not added to ${CONFIG_FILE}`);
-			continue;
-		}
-		modules.push(module.name);
-	}
-	if (options.skipConfig || modules.length === 0) return;
-	if (!await addModules(dir, modules)) return;
+		return json && !json.amxts?.module;
+	});
+	for (const module of notModules) log.warn(`${module.name} is not an amxts module (its package.json has no "amxts" field): installed, not added to ${CONFIG_FILE}`);
+	const entries = configEntries(all.filter(module => !notModules.includes(module)), wanted);
+	if (options.skipConfig || entries.length === 0) return;
+	if (!await addModules(dir, entries)) return;
 
 	// The editor config names the modules the config lists: prepared again
 	// now that it lists these - the install's own prepare ran before.
@@ -69,17 +69,22 @@ export async function moduleAdd(names, options = {}) {
 	if (projectCore) await prepare(projectCore);
 }
 
-/** Lists modules in amxts.config.ts, a new one when there is none. Whether it changed. */
-async function addModules(dir, modules) {
+/**
+ * Lists modules in amxts.config.ts, a new one when there is none. Whether it changed.
+ * @param {string} dir
+ * @param {import('./catalog.mjs').ConfigEntry[]} entries
+ */
+async function addModules(dir, entries) {
 	const path = join(dir, CONFIG_FILE);
+	const names = entries.map(each => each.name).join(', ');
 	if (!existsSync(path)) {
-		writeFileSync(path, newConfig(modules));
-		log.success(`Created ${CONFIG_FILE} with ${modules.join(', ')}`);
+		writeFileSync(path, newConfig(entries));
+		log.success(`Created ${CONFIG_FILE} with ${names}`);
 		return true;
 	}
-	const { text, added } = await addToConfig(readFileSync(path, 'utf8'), modules);
+	const { text, added } = await addToConfig(readFileSync(path, 'utf8'), entries);
 	if (added.length === 0) {
-		log.info(`${CONFIG_FILE} lists ${modules.join(', ')} already`);
+		log.info(`${CONFIG_FILE} lists ${names} already`);
 		return false;
 	}
 	writeFileSync(path, text);

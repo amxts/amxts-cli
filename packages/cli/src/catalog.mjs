@@ -117,21 +117,44 @@ export function resolveModule(arg, { catalog = [], local = false, localModules =
 }
 
 /**
- * The modules, and after them what they require that is neither among them
- * nor something the project `has` already.
+ * The modules, each followed by what it requires and was not given - and
+ * what that requires, in turn: the order `modules` lists them in.
  * @param {ModuleRef[]} modules
  * @param {{ catalog?: CatalogModule[], local?: boolean, localModules?: Record<string, string> }} options how a required one is resolved
- * @param {(name: string) => boolean} [has]
- * @returns {ModuleRef[]} the modules to install
+ * @returns {ModuleRef[]} the modules with all they require
  */
-export function withRequired(modules, options, has = () => false) {
-	const all = [...modules];
-	for (const module of modules) {
-		for (const required of module.requires) {
-			if (!has(required) && !all.some(each => each.name === required)) all.push(resolveModule(required, options));
-		}
+export function withRequired(modules, options) {
+	const names = new Set(modules.map(each => each.name));
+	const all = [];
+	const next = modules.toReversed();
+	while (next.length) {
+		const module = next.pop();
+		all.push(module);
+		const required = module.requires.filter(name => !names.has(name)).map(name => resolveModule(name, options));
+		for (const each of required) names.add(each.name);
+		next.push(...required.toReversed());
 	}
 	return all;
+}
+
+/**
+ * @typedef {object} ConfigEntry a module as `modules` in amxts.config.ts lists it
+ * @property {string} name its package: "@amxts/config-core"
+ * @property {string[]} [by] the modules that need it, when it is listed for them: "menu-core"
+ */
+
+/**
+ * What `modules` lists for the chosen modules: withRequired()'s order, a
+ * module that was not chosen with the ones that need it.
+ * @param {ModuleRef[]} all withRequired()'s modules
+ * @param {ModuleRef[]} chosen the ones asked for
+ * @returns {ConfigEntry[]} the entries
+ */
+export function configEntries(all, chosen) {
+	return all.map(module => ({
+		name: module.name,
+		by: chosen.includes(module) ? [] : all.filter(other => other.requires.includes(module.name)).map(other => shortName(other.name)),
+	}));
 }
 
 /** The other @amxts modules a package says it needs: its peer dependencies but the core. */

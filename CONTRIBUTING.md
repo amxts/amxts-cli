@@ -74,9 +74,9 @@ A project needs no Bun of its own.
 | `src/ui.mjs` | colors (off without a TTY or with `NO_COLOR`, on with `FORCE_COLOR`), `log`, `CliError(message, hint)`, `report()`, `closest()` (edit distance with swaps) |
 | `src/pm.mjs` | the package manager: `npm_config_user_agent`, lockfiles, `packageManager`; each one's install / add / run / exec spelling |
 | `src/core.mjs` | the command's version, the project's core and the one on this machine, the version and `cliApi` checks, Bun, running a task |
-| `src/catalog.mjs` | the amxts catalog (`loadCatalog()`), names in it, `--local` folders, `file:` / `link:` specs |
+| `src/catalog.mjs` | the amxts catalog (`loadCatalog()`), names in it, `--local` folders, `file:` / `link:` specs; `withRequired()` / `configEntries()`: a chosen module, then what it requires (and that, in turn), each with the modules that need it |
 | `src/modules.json` | the catalog as the command was published with it: what it offers offline |
-| `src/config.mjs` | `amxts.config.ts`: read `modules` and `target`, add to `modules` keeping its quotes and layout |
+| `src/config.mjs` | `amxts.config.ts`: read `modules` and `target`, add to `modules` keeping its quotes and layout - one per line when an entry has its `// needed by menu-core` comment |
 | `src/includes.mjs` | the server's includes: its own, or fetched for `target` (`fetch`, a `.zip` read with `node:zlib`, the sha256 checked); `prepare()`, which `prepare`, `dev`, `build` and `typecheck` run first |
 | `src/template.mjs` | `{{placeholders}}`, `// #if flag` / `// #if !flag` blocks (`<!-- #if -->` in Markdown, `# #if` in `.gitignore`), `_x` written as `.x` |
 | `src/lint.mjs` | what a project and a module get to lint with: the oxlint and oxfmt packages, the `lint` / `lint:fix` scripts, the files that are there only for the lint |

@@ -18,7 +18,8 @@ test('module add lists the module in amxts.config.ts, then prepares: the editor 
 		writeFileSync(join(dir, 'amxts.config.ts'), 'export default defineConfig({\n\tmodules: [],\n});\n');
 		const run = amxts(['module', 'add', 'menu-core', '--skip-install'], dir, CATALOG);
 		expect(run.code).toBe(0);
-		expect(run.out).toContain('✔ Added @amxts/menu-core to amxts.config.ts\ntask prepare\nmodules: ["@amxts/menu-core"],\n');
+		expect(run.out).toContain('✔ Added @amxts/menu-core, @amxts/config-core to amxts.config.ts\ntask prepare\n');
+		expect(readFileSync(join(dir, 'amxts.config.ts'), 'utf8')).toContain('"@amxts/config-core", // needed by menu-core');
 	});
 });
 

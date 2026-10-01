@@ -74,9 +74,9 @@ postinstall `bun`. `bunFor()` (`src/core.mjs`) берёт его, Bun из PATH 
 | `src/ui.mjs` | цвета (выключены без TTY или с `NO_COLOR`, включены с `FORCE_COLOR`), `log`, `CliError(message, hint)`, `report()`, `closest()` (расстояние правки с перестановками) |
 | `src/pm.mjs` | менеджер пакетов: `npm_config_user_agent`, lock-файлы, `packageManager`; как у каждого пишутся install / add / run / exec |
 | `src/core.mjs` | версия команды, ядро проекта и ядро на этой машине, проверки версии и `cliApi`, Bun, запуск задачи |
-| `src/catalog.mjs` | каталог amxts (`loadCatalog()`), имена в нём, папки `--local`, спецификации `file:` / `link:` |
+| `src/catalog.mjs` | каталог amxts (`loadCatalog()`), имена в нём, папки `--local`, спецификации `file:` / `link:`; `withRequired()` / `configEntries()`: выбранный модуль, за ним то, что ему нужно (и то, что нужно тому), у каждого — модули, которым он нужен |
 | `src/modules.json` | каталог таким, каким он был при публикации команды: то, что она предлагает без сети |
-| `src/config.mjs` | `amxts.config.ts`: прочитать `modules` и `target`, дописать в `modules`, сохранив кавычки и раскладку |
+| `src/config.mjs` | `amxts.config.ts`: прочитать `modules` и `target`, дописать в `modules`, сохранив кавычки и раскладку — по одному на строке, когда у записи есть комментарий `// needed by menu-core` |
 | `src/includes.mjs` | include сервера: его собственные или скачанные для `target` (`fetch`, `.zip` читается через `node:zlib`, sha256 сверяется); `prepare()`, который первым делом запускают `prepare`, `dev`, `build` и `typecheck` |
 | `src/template.mjs` | `{{placeholders}}`, блоки `// #if flag` / `// #if !flag` (`<!-- #if -->` в Markdown, `# #if` в `.gitignore`), `_x` пишется как `.x` |
 | `src/lint.mjs` | чем проект и модуль проверяют код: пакеты oxlint и oxfmt, скрипты `lint` / `lint:fix`, файлы, которые нужны только линтеру |

@@ -8,7 +8,7 @@ export default defineConfig({
 	 * build; one whose natives only Pawn plugins call stays with
 	 * `pawn: ["@amxts/menu-core"]`.
 	 */
-	modules: [{{modules}}],
+	modules: {{modules}},
 
 	/**
 	 * The server the plugins are for: "rehlds" (ReHLDS, ReGameDLL, ReAPI) or "hlds".

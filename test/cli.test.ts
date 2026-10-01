@@ -5,7 +5,7 @@ import { join } from 'node:path';
 // @ts-ignore - bun:test types not available during type checking
 import { describe, expect, test } from 'bun:test';
 import { parseArgs } from '../packages/cli/src/args.mjs';
-import { resolveModule, specFor } from '../packages/cli/src/catalog.mjs';
+import { configEntries, resolveModule, specFor, withRequired } from '../packages/cli/src/catalog.mjs';
 import { addToConfig, configModules } from '../packages/cli/src/config.mjs';
 import { localCore } from '../packages/cli/src/core.mjs';
 import { LINT_DEPENDENCIES } from '../packages/cli/src/lint.mjs';
@@ -73,6 +73,26 @@ describe('amxts.config.ts', () => {
 		expect((await addToConfig('export default defineConfig({});\n', ['a'])).text).toBe('export default defineConfig({\n\tmodules: ["a"],\n});\n');
 	});
 
+	test('a module another one needs goes right after it, with a comment: the list goes one per line', async () => {
+		const entries = [{ name: '@amxts/menu-core', by: [] }, { name: '@amxts/config-core', by: ['menu-core'] }];
+		const both = '\tmodules: [\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core\n\t],\n';
+		expect((await addToConfig('export default defineConfig({\n\tmodules: [],\n});\n', entries)).text).toBe(`export default defineConfig({\n${both}});\n`);
+		expect((await addToConfig('export default defineConfig({});\n', entries)).text).toBe(`export default defineConfig({\n${both}});\n`);
+		// On one line: written one per line, the ones there first.
+		expect((await addToConfig(`export default defineConfig({\n\tmodules: ['@amxts/resemiclip'],\n});\n`, entries)).text)
+			.toBe(`export default defineConfig({\n\tmodules: [\n\t\t'@amxts/resemiclip',\n\t\t'@amxts/menu-core',\n\t\t'@amxts/config-core', // needed by menu-core\n\t],\n});\n`);
+		// One per line: after the last one's comma and comment.
+		const listed = 'export default defineConfig({\n\tmodules: [\n\t\t"@amxts/resemiclip" // semiclip\n\t],\n});\n';
+		expect((await addToConfig(listed, entries)).text).toBe(listed.replace('"@amxts/resemiclip" // semiclip', '"@amxts/resemiclip", // semiclip\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core'));
+	});
+
+	test('a module listed already is not listed twice, and no comment is needed then', async () => {
+		const entries = [{ name: '@amxts/menu-core', by: [] }, { name: '@amxts/config-core', by: ['menu-core'] }];
+		const { text, added } = await addToConfig('export default defineConfig({\n\tmodules: ["@amxts/config-core"],\n});\n', entries);
+		expect(added).toEqual(['@amxts/menu-core']);
+		expect(text).toBe('export default defineConfig({\n\tmodules: ["@amxts/config-core", "@amxts/menu-core"],\n});\n');
+	});
+
 	test('a config it cannot read is an error that says what to add', async () => {
 		await expect(addToConfig('const config = {};\nexport default config;\n', ['a'])).rejects.toThrow('has no `export default defineConfig');
 	});
@@ -90,6 +110,36 @@ describe('modules by name', () => {
 		expect(resolveModule('amxts-votes', { catalog }).listed).toBe(true);
 		expect(resolveModule('@you/greeter', { catalog })).toMatchObject({ name: '@you/greeter', listed: false });
 		expect(() => resolveModule('Not A Name', { catalog })).toThrow('is not a package name');
+	});
+
+	test('a module is followed by what it requires, and that by what it requires', () => {
+		const chain = [
+			{ name: 'a', npm: 'amxts-a', requires: ['amxts-b'] },
+			{ name: 'b', npm: 'amxts-b', requires: ['amxts-c'] },
+			{ name: 'c', npm: 'amxts-c', requires: [] },
+			{ name: 'd', npm: 'amxts-d', requires: ['amxts-c'] },
+		];
+		const from = { catalog: chain };
+		const chosen = ['a', 'd'].map(name => resolveModule(name, from));
+		expect(configEntries(withRequired(chosen, from), chosen)).toEqual([
+			{ name: 'amxts-a', by: [] },
+			{ name: 'amxts-b', by: ['amxts-a'] },
+			{ name: 'amxts-c', by: ['amxts-b', 'amxts-d'] },
+			{ name: 'amxts-d', by: [] },
+		]);
+	});
+
+	test('module add lists what the module requires right after it, unless the config has it', () => {
+		inTemp((dir) => {
+			writeFileSync(join(dir, 'package.json'), '{ "name": "project" }');
+			const add = () => node(BIN, ['module', 'add', 'menu-core', '--skip-install'], dir, { AMXTS_CATALOG: snapshot });
+			const config = join(dir, 'amxts.config.ts');
+			expect(add().code).toBe(0);
+			expect(readFileSync(config, 'utf8')).toBe('export default defineConfig({\n\tmodules: [\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core\n\t],\n});\n');
+			writeFileSync(config, 'export default defineConfig({\n\tmodules: ["@amxts/config-core"],\n});\n');
+			expect(add().code).toBe(0);
+			expect(readFileSync(config, 'utf8')).toBe('export default defineConfig({\n\tmodules: ["@amxts/config-core", "@amxts/menu-core"],\n});\n');
+		});
 	});
 
 	test('--local: the folder the core on this machine takes it from, as a file: spec relative to the project', async () => {
@@ -151,11 +201,11 @@ describe('the command line', () => {
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.name).toBe('my-server');
 			expect(Object.keys(pkg.scripts)).toEqual(['postinstall', 'dev', 'build', 'typecheck', 'test', 'lint', 'lint:fix']);
-			// menu-core brings config-core: both installed, the config lists what was chosen.
+			// menu-core brings config-core: both installed, both listed.
 			expect(Object.keys(pkg.devDependencies)).toEqual(['@amxts/config-core', '@amxts/core', '@amxts/menu-core', '@types/bun', ...Object.keys(LINT_DEPENDENCIES)].sort((a, b) => a.localeCompare(b)));
 			// From a checkout the core and the modules are linked from this machine.
 			expect(pkg.devDependencies['@amxts/core']).toStartWith('file:');
-			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('modules: ["@amxts/menu-core"],');
+			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('\tmodules: [\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core\n\t],\n');
 			// No includes at that server: the default target, ReHLDS with ReAPI.
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('target: "rehlds",');
 			const plugin = readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8');
