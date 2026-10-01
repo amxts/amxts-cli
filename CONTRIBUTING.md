@@ -33,7 +33,7 @@ its `src/cli-api.mjs`:
 | from the cli-api | used by |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | every command that needs the core; `--local` is the default for `module add` when the project's core is a checkout |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`: `{ runtime: 'bun' \| 'node', args }`, run by `runTask()` in the project's folder |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade`: `{ runtime: 'bun' \| 'node', args }`, run by `runTask()` in the project's folder |
 | `localModules()` | `--local`: where the official modules are on this machine |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` is read with the core's parser, so `npm create amxts` does not fetch TypeScript |
 | `toolchain()` | `info` |
@@ -52,7 +52,7 @@ pnpm and yarn start it with Node, and nothing in it needs a build step.
 - **On Node**: `init`, `module add` / `list`, `info`, `--help`. They read
   `amxts.config.ts` with the TypeScript parser, never by running it, so they
   work without Bun.
-- **On Bun**: the core's `prepare`, `build` and `check` tasks - `runTask()`
+- **On Bun**: the core's `prepare`, `build`, `check` and `upgrade` tasks - `runTask()`
   runs them and passes `--debug` on as `AMXTS_DEBUG=1`. `typecheck` runs the
   `prepare` task, then `tsc` under Node. `test` runs `bun test` itself, with
   the arguments it was given.

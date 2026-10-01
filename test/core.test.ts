@@ -34,6 +34,15 @@ describe('the project\'s core', () => {
 		});
 	});
 
+	test('upgrade runs the core\'s task in the project, after the banner', () => {
+		inTemp((dir) => {
+			standInProject(dir, '0.1.0', CLI_API);
+			const run = amxts(['upgrade'], dir);
+			expect(run.out).toBe('amxts 0.1.0 · upgrade\ntask upgrade\n');
+			expect(run.code).toBe(0);
+		});
+	});
+
 	test('a bun task runs on the Bun the core comes with', () => {
 		inTemp((dir) => {
 			standInProject(dir, '0.1.0', CLI_API);

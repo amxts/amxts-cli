@@ -35,7 +35,7 @@ describe('arguments', () => {
 	});
 
 	test('a typo is one edit away, a swap of letters included', () => {
-		const commands = ['init', 'dev', 'build', 'typecheck', 'test', 'module', 'check', 'prepare', 'info'];
+		const commands = ['init', 'dev', 'build', 'typecheck', 'test', 'module', 'check', 'prepare', 'upgrade', 'info'];
 		expect(closest('buidl', commands)).toBe('build');
 		expect(closest('tset', commands)).toBe('test');
 		expect(closest('typechek', commands)).toBe('typecheck');

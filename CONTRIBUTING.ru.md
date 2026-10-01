@@ -33,7 +33,7 @@
 | из cli-api | чем пользуется |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | каждая команда, которой нужно ядро; `--local` — поведение `module add` по умолчанию, когда ядро проекта — рабочая копия |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`: `{ runtime: 'bun' \| 'node', args }`, их запускает `runTask()` в папке проекта |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade`: `{ runtime: 'bun' \| 'node', args }`, их запускает `runTask()` в папке проекта |
 | `localModules()` | `--local`: где официальные модули лежат на этой машине |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` читается парсером ядра, поэтому `npm create amxts` не тянет TypeScript |
 | `toolchain()` | `info` |
@@ -52,7 +52,7 @@
 - **На Node**: `init`, `module add` / `list`, `info`, `--help`. Они читают
   `amxts.config.ts` парсером TypeScript, никогда не выполняя его, поэтому
   работают без Bun.
-- **На Bun**: задачи ядра `prepare`, `build` и `check` — `runTask()`
+- **На Bun**: задачи ядра `prepare`, `build`, `check` и `upgrade` — `runTask()`
   запускает их и передаёт `--debug` дальше как `AMXTS_DEBUG=1`. `typecheck`
   запускает задачу `prepare`, затем `tsc` под Node. `test` сам запускает
   `bun test` с переданными аргументами.

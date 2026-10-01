@@ -168,6 +168,16 @@ export const COMMANDS = {
 			await prepare(await projectCore());
 		},
 	},
+	upgrade: {
+		description: 'Rewrite the project\'s imports to the API of the core it has installed',
+		usage: 'amxts upgrade',
+		examples: ['amxts upgrade'],
+		async run() {
+			const core = await projectCore();
+			banner(core.version, 'upgrade');
+			runTaskOrExit(core, 'upgrade');
+		},
+	},
 	info: {
 		description: 'Versions and settings, for a bug report',
 		usage: 'amxts info',
