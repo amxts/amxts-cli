@@ -24,9 +24,15 @@ import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
 import { c, CliError } from './ui.mjs';
 
-/** The tools a project gets besides the core and its modules. */
+/**
+ * The tools a project gets besides the core and its modules. knip reads the
+ * knip.json the template writes; from 6 on it counts a package imported by
+ * its name as used wherever the name resolves, so a core and modules linked
+ * from this machine's folders (--local) are not called unused.
+ */
 const TOOLS = {
 	'@types/bun': '^1.4.2',
+	'knip': '^6.39.0',
 };
 
 const DEFAULT_DIR = 'my-server';

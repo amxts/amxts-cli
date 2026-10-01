@@ -202,7 +202,7 @@ describe('the command line', () => {
 			expect(pkg.name).toBe('my-server');
 			expect(Object.keys(pkg.scripts)).toEqual(['postinstall', 'dev', 'build', 'typecheck', 'test', 'lint', 'lint:fix']);
 			// menu-core brings config-core: both installed, both listed.
-			expect(Object.keys(pkg.devDependencies)).toEqual(['@amxts/config-core', '@amxts/core', '@amxts/menu-core', '@types/bun', ...Object.keys(LINT_DEPENDENCIES)].sort((a, b) => a.localeCompare(b)));
+			expect(Object.keys(pkg.devDependencies)).toEqual(['@amxts/config-core', '@amxts/core', '@amxts/menu-core', '@types/bun', 'knip', ...Object.keys(LINT_DEPENDENCIES)].sort((a, b) => a.localeCompare(b)));
 			// From a checkout the core and the modules are linked from this machine.
 			expect(pkg.devDependencies['@amxts/core']).toStartWith('file:');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('\tmodules: [\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core\n\t],\n');
@@ -233,7 +233,7 @@ describe('the command line', () => {
 			const root = join(dir, 'plain');
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.scripts.lint).toBeUndefined();
-			expect(pkg.devDependencies).toEqual({ '@amxts/core': '^0.1.0', '@types/bun': '^1.4.2' });
+			expect(pkg.devDependencies).toEqual({ '@amxts/core': '^0.1.0', '@types/bun': '^1.4.2', 'knip': '^6.39.0' });
 			expect(readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8')).not.toContain('@amxts/menu-core');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('modules: [],');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('target: "hlds",');
