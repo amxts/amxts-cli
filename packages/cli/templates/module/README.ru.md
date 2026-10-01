@@ -47,7 +47,7 @@ export default defineConfig({
 Плагин проекта, в котором модуль указан, пользуется им как `{{camel}}`, без импорта:
 
 ```ts
-server.addCommand("/hello", {{camel}}.greet);
+server.addCommand("/hello", ({ player }) => {{camel}}.greet(player));
 ```
 
 | Функция | Что делает |

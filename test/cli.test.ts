@@ -287,7 +287,7 @@ describe('the command line', () => {
 			expect(readFileSync(join(root, 'src', 'natives.ts'), 'utf8')).toContain('export function kill_feed_greet(player: Player)');
 			expect(readFileSync(join(root, 'src', 'index.ts'), 'utf8')).toContain('defineModule<KillFeedOptions>');
 			expect(readFileSync(join(root, 'src', 'index.ts'), 'utf8')).toContain('imports: [{ from: "@you/kill-feed", as: "killFeed" }],');
-			expect(readFileSync(join(root, 'playground', 'plugins', 'welcome.ts'), 'utf8')).toContain('server.addCommand("/hello", killFeed.greet);');
+			expect(readFileSync(join(root, 'playground', 'plugins', 'welcome.ts'), 'utf8')).toContain('server.addCommand("/hello", ({ player }) => killFeed.greet(player));');
 			expect(JSON.parse(readFileSync(join(root, 'playground', 'package.json'), 'utf8')).devDependencies).toEqual({ '@you/kill-feed': 'file:..' });
 			for (const file of ['LICENSE', 'README.md', 'README.ru.md', 'test/kill-feed.test.ts', '.gitignore', '.oxlintrc.json']) expect(existsSync(join(root, file))).toBe(true);
 		});

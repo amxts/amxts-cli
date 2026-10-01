@@ -9,7 +9,7 @@ const { greeting } = configs.load("hello", { greeting: "Welcome" });
 const greeting = "Welcome";
 // #endif
 
-server.addCommand("/hp", sayHp);
+server.addCommand("/hp", ({ player }) => sayHp(player));
 server.addEventListener("putinserver", event => print(0, `${greeting}, ${event.player.name}!`));
 // #if menu-core
 
@@ -21,7 +21,7 @@ hello.addItem(player => `Heal (${player.health} HP)`, {
 	onSelect: heal,
 });
 
-server.addCommand("/menu", player => hello.show(player));
+server.addCommand("/menu", ({ player }) => hello.show(player));
 // #endif
 
 function sayHp(player: Player) {

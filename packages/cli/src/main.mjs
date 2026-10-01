@@ -169,7 +169,7 @@ export const COMMANDS = {
 		},
 	},
 	upgrade: {
-		description: 'Rewrite the project\'s imports to the API of the core it has installed',
+		description: 'Rewrite the project\'s code to the API of the core it has installed',
 		usage: 'amxts upgrade',
 		examples: ['amxts upgrade'],
 		async run() {

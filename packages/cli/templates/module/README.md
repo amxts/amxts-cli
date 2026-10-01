@@ -47,7 +47,7 @@ export default defineConfig({
 A plugin of a project that lists the module uses it as `{{camel}}`, without an import:
 
 ```ts
-server.addCommand("/hello", {{camel}}.greet);
+server.addCommand("/hello", ({ player }) => {{camel}}.greet(player));
 ```
 
 | Function | What it does |
