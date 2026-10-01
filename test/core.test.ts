@@ -43,6 +43,15 @@ describe('the project\'s core', () => {
 		});
 	});
 
+	test('build prepares quietly - the build says what the project is - and prepare says what it wrote', () => {
+		inTemp((dir) => {
+			standInProject(dir, '0.1.0', CLI_API);
+			const run = amxts(['build'], dir);
+			expect(run.out).toBe('amxts 0.1.0 · build\ntask prepare --quiet\ntask build\n');
+			expect(amxts(['prepare'], dir).out).toBe('task prepare\n');
+		});
+	});
+
 	test('no core: how to install it', () => {
 		inTemp((dir) => {
 			writeFileSync(join(dir, 'package.json'), '{ "name": "my-server", "private": true }\n');

@@ -161,10 +161,13 @@ export async function ensureIncludes(core, root, options = {}) {
  * What `amxts prepare` does, and dev, build and typecheck first: the
  * server's includes, then the core's prepare task (the editor config). An
  * include that cannot be fetched is a warning - the build needs one only
- * where a plugin names it, and says so there.
+ * where a plugin names it, and says so there. `quiet`, for a command that
+ * says what the project is itself (dev, build, typecheck): the core's line
+ * about the editor config only with --debug.
  * @param {import('./core.mjs').Core} core the project's core
+ * @param {{ quiet?: boolean }} [options]
  */
-export async function prepare(core) {
+export async function prepare(core, { quiet = false } = {}) {
 	const root = findProject() ?? process.cwd();
 	try {
 		const includes = await ensureIncludes(core, root);
@@ -174,5 +177,5 @@ export async function prepare(core) {
 		log.warn(error.message);
 		if (error.hint) log.hint(error.hint);
 	}
-	runTaskOrExit(core, 'prepare');
+	runTaskOrExit(core, 'prepare', quiet ? ['--quiet'] : []);
 }

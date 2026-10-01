@@ -88,7 +88,7 @@ export const COMMANDS = {
 			banner(core.version, 'dev');
 			// The container reads dist/ where it is: nothing to deploy, and AMXTS_SERVER is not asked.
 			if (!values.docker) await ensureServer(needProject(), detectPackageManager());
-			await prepare(core);
+			await prepare(core, { quiet: true });
 			if (values.docker) runTaskOrExit(core, 'build', ['--watch', '--docker', '--os', 'linux']);
 			else runTaskOrExit(core, 'build', ['--deploy', '--watch', ...osArgs(values)]);
 		},
@@ -107,7 +107,7 @@ export const COMMANDS = {
 			const core = await projectCore();
 			banner(core.version, 'build');
 			if (values.deploy) await ensureServer(needProject(), detectPackageManager());
-			await prepare(core);
+			await prepare(core, { quiet: true });
 			runTaskOrExit(core, 'build', [...(values.deploy ? ['--deploy'] : []), ...(values.watch ? ['--watch'] : []), ...os]);
 		},
 	},
@@ -118,7 +118,7 @@ export const COMMANDS = {
 		async run() {
 			const core = await projectCore();
 			banner(core.version, 'typecheck');
-			await prepare(core);
+			await prepare(core, { quiet: true });
 			if (runTask(core, 'typecheck') !== 0) {
 				throw new CliError('The plugins have type errors', 'They are listed above, file:line first.');
 			}
