@@ -29,8 +29,8 @@ server.addCommand("/menu", ({ player }) => hello.show(player));
 // #endif
 // #if !menu-core
 
-// A menu: its items can be functions of the player it is shown to.
-const hello = new Menu("Hello");
+// A menu: its title and items can be functions of the player it is shown to.
+const hello = new Menu(({ player }) => `Hello, ${player.name}`);
 hello.addItem({ title: "Wave", onSelect: ({ player }) => print(0, `${player.name} waves`) });
 hello.addItem({
 	title: ({ player }) => `Heal (${player.health} HP)`,
