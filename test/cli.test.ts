@@ -211,7 +211,9 @@ describe('the command line', () => {
 			const plugin = readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8');
 			// The modules' namespaces are auto-imported: the plugin uses them without an import line.
 			expect(plugin).toContain('menus.create(');
-			expect(plugin).toContain('configs.load(');
+			// A config is read typed, through an interface.
+			expect(plugin).toContain('configs.load<HelloConfig>(');
+			expect(plugin).not.toContain('new Menu(');
 			expect(plugin).not.toContain('import ');
 			expect(plugin).not.toContain('#if');
 			expect(readFileSync(join(root, '.env'), 'utf8')).toContain('AMXTS_SERVER=D:/hlds/cstrike/addons/amxts');
@@ -234,7 +236,12 @@ describe('the command line', () => {
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.scripts.lint).toBeUndefined();
 			expect(pkg.devDependencies).toEqual({ '@amxts/core': '^0.1.0', '@types/bun': '^1.4.2', 'knip': '^6.39.0' });
-			expect(readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8')).not.toContain('@amxts/menu-core');
+			const plugin = readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8');
+			expect(plugin).not.toContain('@amxts/menu-core');
+			// The core's own menu, no module's.
+			expect(plugin).toContain('new Menu(');
+			expect(plugin).not.toContain('menus.create(');
+			expect(plugin).not.toContain('configs.');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('modules: [],');
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('target: "hlds",');
 			// No server given: .env still names the setting, empty, for amxts dev to ask.

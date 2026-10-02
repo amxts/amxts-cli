@@ -3,7 +3,11 @@ plugin({ name: "Hello", version: "1.0.0", author: "{{author}}", description: "Th
 // #if config-core
 // configs/hello.yaml (or hello.json) says what a player is greeted with -
 // "greeting: Hi" - and "Welcome" is what it is when the file does not say.
-const { greeting } = configs.load("hello", { greeting: "Welcome" });
+interface HelloConfig {
+	greeting: string;
+}
+
+const { greeting } = configs.load<HelloConfig>("hello", { greeting: "Welcome" });
 // #endif
 // #if !config-core
 const greeting = "Welcome";
@@ -19,6 +23,21 @@ hello.addItem("Wave", { onSelect: wave });
 hello.addItem(player => `Heal (${player.health} HP)`, {
 	visible: player => player.health < 100,
 	onSelect: heal,
+});
+
+server.addCommand("/menu", ({ player }) => hello.show(player));
+// #endif
+// #if !menu-core
+
+// A menu: its items can be functions of the player it is shown to.
+const hello = new Menu("Hello");
+hello.addItem({ title: "Wave", onSelect: ({ player }) => print(0, `${player.name} waves`) });
+hello.addItem({
+	title: ({ player }) => `Heal (${player.health} HP)`,
+	visible: ({ player }) => player.health < 100,
+	onSelect: ({ player }) => {
+		player.health = 100;
+	},
 });
 
 server.addCommand("/menu", ({ player }) => hello.show(player));
