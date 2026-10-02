@@ -18,7 +18,7 @@ import { modulesList } from './config.mjs';
 import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLocalCore, readJson, VERSION } from './core.mjs';
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
-import { commandLine, execAmxts, installArgs, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
+import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
 import { askServer, canAsk, missingServer, serverEnv } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
@@ -251,7 +251,7 @@ export async function initProject(options) {
 		// A spinner in a terminal; in a log (CI, a pipe) one line before and one after.
 		const spinner = process.stdout.isTTY ? p.spinner() : { start: text => p.log.step(text), stop: (text, code) => (code ? p.log.error(text) : p.log.success(text)) };
 		spinner.start(`Installing dependencies with ${pm}`);
-		const result = await run(installArgs(pm), { cwd: root, quiet: true });
+		const result = await installLinked(installArgs(pm), linkedFolders(root), { cwd: root, quiet: true });
 		if (result.code === 0) {
 			pinLatest(root);
 			installedOk = true;
