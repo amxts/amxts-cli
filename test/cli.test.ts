@@ -272,6 +272,20 @@ describe('the command line', () => {
 		});
 	});
 
+	test('init takes the server\'s own folder and keeps its addons/amxts; a folder that is no server is refused', () => {
+		inTemp((dir) => {
+			mkdirSync(join(dir, 'hlds', 'cstrike', 'addons', 'amxmodx', 'scripting', 'include'), { recursive: true });
+			expect(amxts(['init', 'rooted', '--modules', '', '--server', join(dir, 'hlds'), '--no-lint', '--no-git', '--no-install', '--yes'], dir).code).toBe(0);
+			const amxtsDir = join(dir, 'hlds', 'cstrike', 'addons', 'amxts').replace(/\\/g, '/');
+			expect(readFileSync(join(dir, 'rooted', '.env'), 'utf8')).toContain(`AMXTS_SERVER=${amxtsDir}\n`);
+
+			mkdirSync(join(dir, 'stray'));
+			const stray = amxts(['init', 'strayed', '--server', join(dir, 'stray'), '--no-install', '--yes'], dir);
+			expect(stray.code).toBe(1);
+			expect(stray.out).toContain('is not a server: there is no');
+		});
+	});
+
 	test('init --module writes a module package with its playground, natives with --natives', () => {
 		inTemp((dir) => {
 			const run = amxts(['init', '--module', '@you/kill-feed', '--natives', '--pm', 'npm'], dir);

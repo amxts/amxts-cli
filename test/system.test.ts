@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // @ts-ignore - bun:test types not available during type checking
 import { expect, test } from 'bun:test';
+import { serverFolder } from '../packages/cli/src/server.mjs';
 import { serverSystemOf } from '../packages/cli/src/system.mjs';
 import { amxts, inTemp } from './helpers';
 
@@ -46,5 +47,16 @@ test('build and dev take --os and refuse a system they do not know', () => {
 		expect(build.out).toContain('--os mac: windows or linux');
 		expect(amxts(['build', '--help'], dir).out).toContain('--os <windows|linux>');
 		expect(amxts(['dev', '--help'], dir).out).toContain('--os <windows|linux>');
+	});
+});
+
+test('a server path is its addons/amxts, or the hlds folder, cstrike or cstrike/addons above it', () => {
+	inTemp((dir) => {
+		const amxtsDir = server(join(dir, 'hlds'), 'hlds.exe');
+		const hlds = join(dir, 'hlds');
+		for (const given of [amxtsDir, hlds, join(hlds, 'cstrike'), join(hlds, 'cstrike', 'addons')]) expect(serverFolder(given)).toBe(amxtsDir);
+		expect(serverFolder('D:/later/cstrike/addons/amxts')).toBe('D:/later/cstrike/addons/amxts');
+		mkdirSync(join(dir, 'stray'));
+		expect(() => serverFolder(join(dir, 'stray'))).toThrow('is not a server: there is no');
 	});
 });

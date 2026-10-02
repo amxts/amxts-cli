@@ -8,6 +8,7 @@ import process from 'node:process';
 import { readConfigModules } from './config.mjs';
 import { bunFor, bunVersion, CLI_DIR, installedCore, readJson, setting, VERSION } from './core.mjs';
 import { detectPackageManager, versionOf } from './pm.mjs';
+import { serverFolderOrNull } from './server.mjs';
 import { c, CliError } from './ui.mjs';
 
 /** The project's core, or why it cannot be used: not installed, or not one this command works with. */
@@ -19,6 +20,14 @@ async function core(dir) {
 		if (error instanceof CliError) return { core: null, problem: c.red(`${error.message} - ${error.hint}`) };
 		throw error;
 	}
+}
+
+/** After AMXTS_SERVER: the addons/amxts it names when it is a folder above it, or why it is no server. */
+function serverNote(server) {
+	const folder = serverFolderOrNull(server);
+	if (folder === null) return c.red(' (not a server)');
+	const shown = folder === server ? '' : ` - ${folder.replace(/\\/g, '/')}`;
+	return existsSync(folder) ? c.dim(shown) : c.red(`${shown} (not found)`);
 }
 
 /**
@@ -73,7 +82,7 @@ export async function info() {
 						const version = readJson(join(dir, 'node_modules', name, 'package.json'))?.version;
 						return version ? `${name} ${version}` : `${name} ${c.red('(not installed)')}`;
 					}).join(', ')],
-		['AMXTS_SERVER', server ? `${server}${existsSync(server) ? '' : c.red(' (not found)')}` : c.dim('not set')],
+		['AMXTS_SERVER', server ? `${server}${serverNote(server)}` : c.dim('not set')],
 		['Server system', system],
 		['AMXTS_DOCS_LANG', setting(dir, 'AMXTS_DOCS_LANG') || c.dim('en')],
 	];

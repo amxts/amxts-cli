@@ -15,7 +15,8 @@ Counter-Strike 1.6 plugins in TypeScript, built with [amxts](https://amxts.githu
 - `{{amxts}} module add <name>` - installs a module and lists it in `amxts.config.ts`
 
 `AMXTS_SERVER` in `.env` is the `addons/amxts` folder of the server `dev`
-deploys to:
+deploys to. The server's own folder or its `cstrike` will do too: the build
+finds `cstrike/addons/amxts` under it.
 
 ```sh
 AMXTS_SERVER=D:/hlds/cstrike/addons/amxts

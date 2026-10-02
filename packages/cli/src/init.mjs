@@ -19,7 +19,7 @@ import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLo
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
 import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
-import { askServer, canAsk, missingServer, serverEnv } from './server.mjs';
+import { askServer, canAsk, missingServer, serverEnv, serverFolder } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
 import { c, CliError } from './ui.mjs';
@@ -150,7 +150,8 @@ export async function initProject(options) {
 	const git = hasGit && (options.git ?? (interactive
 		? answer(await p.confirm({ message: 'Initialize a git repository?', initialValue: true }))
 		: true));
-	const server = options.server ?? (interactive ? answer(await askServer(pm)) : '');
+	// Its folder, cstrike or addons/amxts: .env keeps the addons/amxts.
+	const server = options.server === undefined ? (interactive ? answer(await askServer(pm)) : '') : serverFolder(options.server);
 
 	// 7. Which server the project is for: its includes say, when it has them
 	// (addons/amxmodx/scripting/include beside AMXTS_SERVER); else asked.

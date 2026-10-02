@@ -3,12 +3,48 @@
 // ask the same when it is not set - in a terminal. Elsewhere (CI, a pipe)
 // nothing is asked, and the build says it is missing.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import process from 'node:process';
 import * as p from '@clack/prompts';
 import { setting } from './core.mjs';
 import { runScript } from './pm.mjs';
-import { c } from './ui.mjs';
+import { c, CliError } from './ui.mjs';
+
+// The folders a server path may name above its addons/amxts, by what is below
+// them: hlds's own (cstrike/addons), the game's (addons).
+const ABOVE_ADDONS = [join('cstrike', 'addons'), 'addons'];
+
+/** A path as .env and the messages write it: with forward slashes. */
+const slashes = path => path.replace(/\\/g, '/');
+
+/**
+ * The server's addons/amxts folder from a path a person gave: that folder
+ * itself, or the hlds folder, cstrike or cstrike/addons above it - as the
+ * core's build reads AMXTS_SERVER. A path that is not there yet is taken as
+ * it is, and so is a folder named amxts or holding the module's plugins.ini.
+ * @param {string} path
+ * @returns {string} the folder; '' for ''
+ * @throws {CliError} for a folder that is there and none of them, naming where it looked
+ */
+export function serverFolder(path) {
+	if (!path) return '';
+	const dir = resolve(path);
+	if (!existsSync(dir) || basename(dir).toLowerCase() === 'amxts' || existsSync(join(dir, 'plugins.ini'))) return path;
+	if (basename(dir).toLowerCase() === 'addons') return join(dir, 'amxts');
+	const addons = ABOVE_ADDONS.map(below => join(dir, below)).find(folder => existsSync(folder));
+	if (addons) return join(addons, 'amxts');
+	const looked = [...ABOVE_ADDONS, 'plugins.ini'].map(below => slashes(join(dir, below)));
+	throw new CliError(`${slashes(path)} is not a server: there is no ${looked.join(', ')}`, 'Give the server\'s folder (where hlds is), its cstrike, or cstrike/addons/amxts.');
+}
+
+/** The server's addons/amxts from a path, or null when the path is no server: for what only reads it. */
+export function serverFolderOrNull(path) {
+	try {
+		return serverFolder(path);
+	} catch {
+		return null;
+	}
+}
 
 /** Whether a command may ask: a terminal, and not CI. */
 export function canAsk() {
@@ -16,18 +52,28 @@ export function canAsk() {
 }
 
 /**
- * Asks for the server's addons/amxts folder. `required`: an empty answer is
- * not taken. The answer, or clack's cancel symbol on Ctrl+C.
+ * Asks for the server: its folder, its cstrike or its addons/amxts.
+ * `required`: an empty answer is not taken. The server's addons/amxts
+ * (serverFolder), '' for none, or clack's cancel symbol on Ctrl+C.
  * @param {string} pm the project's package manager, for the words
  * @param {{ required?: boolean }} [options]
  */
-export function askServer(pm, { required = false } = {}) {
-	return p.text({
-		message: `Where is the server? ${c.dim(`its addons/amxts folder, for ${runScript(pm, 'dev')}${required ? '' : ' - empty to skip'}`)}`,
-		placeholder: process.platform === 'win32' ? 'D:/hlds/cstrike/addons/amxts' : '/srv/hlds/cstrike/addons/amxts',
+export async function askServer(pm, { required = false } = {}) {
+	const answer = await p.text({
+		message: `Where is the server? ${c.dim(`its folder or its addons/amxts, for ${runScript(pm, 'dev')}${required ? '' : ' - empty to skip'}`)}`,
+		placeholder: process.platform === 'win32' ? 'D:/hlds' : '/srv/hlds',
 		defaultValue: '',
-		validate: value => (required && !value?.trim() ? 'The plugins are deployed there: the server\'s addons/amxts folder' : undefined),
+		validate: (value) => {
+			if (!value?.trim()) return required ? 'The plugins are deployed there: the server\'s folder' : undefined;
+			try {
+				serverFolder(value.trim());
+				return undefined;
+			} catch (error) {
+				return `${error.message}. ${error.hint}`;
+			}
+		},
 	});
+	return p.isCancel(answer) ? answer : serverFolder(answer.trim());
 }
 
 /** The warning for a server folder that is not there. */
@@ -67,6 +113,6 @@ export async function ensureServer(root, pm) {
 	}
 	saveServer(root, server);
 	process.env.AMXTS_SERVER = server;
-	p.log.success(`Wrote AMXTS_SERVER=${server.replace(/\\/g, '/')} to .env`);
+	p.log.success(`Wrote AMXTS_SERVER=${slashes(server)} to .env`);
 	if (!existsSync(server)) p.log.warn(missingServer(server));
 }

@@ -23,6 +23,7 @@ import process from 'node:process';
 import { inflateRawSync } from 'node:zlib';
 import { readConfigTarget } from './config.mjs';
 import { findProject, runTaskOrExit, setting } from './core.mjs';
+import { serverFolderOrNull } from './server.mjs';
 import { c, CliError, log } from './ui.mjs';
 
 /** The servers a project can be for, as `target` in amxts.config.ts and `--target` name them. */
@@ -132,7 +133,7 @@ export async function fetchIncludes(source) {
  * @returns {Promise<Includes>} where the includes are
  */
 export async function ensureIncludes(core, root, options = {}) {
-	const own = serverIncludes(setting(root, 'AMXTS_SERVER'));
+	const own = serverIncludes(serverFolderOrNull(setting(root, 'AMXTS_SERVER')));
 	if (own) return { from: 'server', target: targetOf(own), dir: own };
 
 	const target = options.target ?? (await readConfigTarget(root)) ?? 'rehlds';

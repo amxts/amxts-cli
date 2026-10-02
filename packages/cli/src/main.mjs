@@ -31,7 +31,7 @@ const INIT_FLAGS = {
 	modules: { type: 'string', value: 'list', description: 'Modules to add, comma-separated: menu-core,config-core ("" for none)' },
 	lint: { type: 'boolean', description: 'oxlint and oxfmt, with @antfu/eslint-config\'s rules (--no-lint to leave them out)' },
 	git: { type: 'boolean', description: 'git init (--no-git to skip)' },
-	server: { type: 'string', value: 'path', description: 'The server\'s addons/amxts folder, written to .env as AMXTS_SERVER; the build takes its includes' },
+	server: { type: 'string', value: 'path', description: 'The server: its folder, its cstrike or its addons/amxts; .env keeps the addons/amxts as AMXTS_SERVER, and the build takes its includes' },
 	os: { type: 'string', value: Object.keys(SYSTEMS).join('|'), description: 'The server\'s system, when the server\'s folder does not show it: written to .env as AMXTS_SERVER_OS' },
 	target: { type: 'string', value: Object.keys(TARGETS).join('|'), description: 'The server the project is for, when no server is given: rehlds - ReHLDS, ReGameDLL and ReAPI (recommended) - or hlds' },
 	install: { type: 'boolean', description: 'Install the dependencies (--no-install to skip)' },
