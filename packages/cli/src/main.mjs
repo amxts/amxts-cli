@@ -12,12 +12,19 @@ import { GLOBAL_FLAGS, parseArgs } from './args.mjs';
 import { needBun, needProject, projectCore, runTask, runTaskOrExit, VERSION } from './core.mjs';
 import { prepare, TARGETS } from './includes.mjs';
 import { detectPackageManager, PACKAGE_MANAGERS, run } from './pm.mjs';
+import { serverMismatch } from './server-update.mjs';
 import { ensureServer } from './server.mjs';
 import { SYSTEMS } from './system.mjs';
 import { banner, c, CliError, closest, log, report } from './ui.mjs';
 
 /** --os, for the commands that compile: the plugins are built for that system. */
 const OS_FLAG = { type: 'string', value: Object.keys(SYSTEMS).join('|'), description: 'The server\'s system, when AMXTS_SERVER does not show it: the plugins are compiled for it' };
+
+/** The line for a server whose module is of another release than the project's core. */
+function warnServer(core, os) {
+	const line = serverMismatch(core, needProject(), os);
+	if (line) log.warn(line);
+}
 
 /** --os as the build task takes it. */
 function osArgs(values) {
@@ -87,7 +94,10 @@ export const COMMANDS = {
 			const core = await projectCore();
 			banner(core.version, 'dev');
 			// The container reads dist/ where it is: nothing to deploy, and AMXTS_SERVER is not asked.
-			if (!values.docker) await ensureServer(needProject(), detectPackageManager());
+			if (!values.docker) {
+				await ensureServer(needProject(), detectPackageManager());
+				warnServer(core, osArgs(values));
+			}
 			await prepare(core, { quiet: true });
 			if (values.docker) runTaskOrExit(core, 'build', ['--watch', '--docker', '--os', 'linux']);
 			else runTaskOrExit(core, 'build', ['--deploy', '--watch', ...osArgs(values)]);
@@ -106,6 +116,7 @@ export const COMMANDS = {
 			const os = osArgs(values);
 			const core = await projectCore();
 			banner(core.version, 'build');
+			warnServer(core, os);
 			if (values.deploy) await ensureServer(needProject(), detectPackageManager());
 			await prepare(core, { quiet: true });
 			runTaskOrExit(core, 'build', [...(values.deploy ? ['--deploy'] : []), ...(values.watch ? ['--watch'] : []), ...os]);
@@ -169,13 +180,18 @@ export const COMMANDS = {
 		},
 	},
 	upgrade: {
-		description: 'Rewrite the project\'s code to the API of the core it has installed',
-		usage: 'amxts upgrade',
-		examples: ['amxts upgrade'],
-		async run() {
-			const core = await projectCore();
-			banner(core.version, 'upgrade');
-			runTaskOrExit(core, 'upgrade');
+		description: 'Move the project to the latest amxts: its packages, its code, the build and the server',
+		usage: 'amxts upgrade [--to <version>] [--no-server] [--server-only] [--dry-run]',
+		flags: {
+			to: { type: 'string', value: 'version', description: 'The version to move to (the latest on the registry by default)' },
+			server: { type: 'boolean', description: 'Update the server in AMXTS_SERVER: its module, from the release (--no-server to leave it)' },
+			serverOnly: { type: 'boolean', description: 'Only update the server - once it is stopped, when the upgrade found it running' },
+			dryRun: { type: 'boolean', description: 'Say what would change, and change nothing' },
+		},
+		examples: ['amxts upgrade', 'amxts upgrade --dry-run', 'amxts upgrade --to 0.2.0 --no-server', 'amxts upgrade --server-only'],
+		async run({ values }) {
+			const { upgrade } = await import('./upgrade.mjs');
+			await upgrade({ to: values.to, server: values.server !== false, serverOnly: values.serverOnly, dryRun: values.dryRun });
 		},
 	},
 	info: {

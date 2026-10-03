@@ -34,15 +34,6 @@ describe('the project\'s core', () => {
 		});
 	});
 
-	test('upgrade runs the core\'s task in the project, after the banner', () => {
-		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
-			const run = amxts(['upgrade'], dir);
-			expect(run.out).toBe('amxts 0.1.0 · upgrade\ntask upgrade\n');
-			expect(run.code).toBe(0);
-		});
-	});
-
 	test('a bun task runs on the Bun the core comes with', () => {
 		inTemp((dir) => {
 			standInProject(dir, '0.1.0', CLI_API);
@@ -70,12 +61,12 @@ describe('the project\'s core', () => {
 		});
 	});
 
-	test('an older core: update the core', () => {
+	test('an older core: move the project to this command\'s release', () => {
 		inTemp((dir) => {
 			standInProject(dir, '0.0.5', CLI_API);
 			const run = amxts(['build'], dir);
 			expect(run.code).toBe(1);
-			expect(run.out).toContain('✖ @amxts/core 0.0.5 is not a core amxts 0.1.0 works with (^0.1.0)\n  Update the core: npm install -D @amxts/core@latest\n');
+			expect(run.out).toContain('✖ @amxts/core 0.0.5 is not a core amxts 0.1.0 works with (^0.1.0)\n  Move the project to amxts 0.1.0: npx amxts upgrade\n');
 		});
 	});
 
@@ -91,7 +82,7 @@ describe('the project\'s core', () => {
 	test('a core without the cli-api, and one that speaks another', () => {
 		inTemp((dir) => {
 			standInProject(dir, '0.1.0');
-			expect(amxts(['build'], dir).out).toContain('✖ @amxts/core 0.1.0 has no cli-api, which amxts 0.1.0 runs it through\n  Update the core');
+			expect(amxts(['build'], dir).out).toContain('✖ @amxts/core 0.1.0 has no cli-api, which amxts 0.1.0 runs it through\n  Move the project to amxts 0.1.0: npx amxts upgrade');
 		});
 		inTemp((dir) => {
 			standInProject(dir, '0.1.3', CLI_API + 1);

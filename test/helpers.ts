@@ -66,12 +66,16 @@ export function standInProject(dir: string, version: string, api?: number, env =
 	writeFileSync(join(core, 'package.json'), JSON.stringify({ name: '@amxts/core', version, type: 'module', exports }));
 	if (api === undefined) return;
 	writeFileSync(join(core, 'task.mjs'), [
-		'import { existsSync, readFileSync } from "node:fs";',
-		'console.log("task", ...process.argv.slice(2));',
-		'if (process.argv[2] === "prepare" && existsSync("amxts.config.ts")) console.log(readFileSync("amxts.config.ts", "utf8").match(/modules: .*/)[0]);',
+		'import { existsSync, readFileSync, writeFileSync } from "node:fs";',
+		'const args = process.argv.slice(2);',
+		'console.log("task", ...args);',
+		'if (args[0] === "prepare" && existsSync("amxts.config.ts")) console.log(readFileSync("amxts.config.ts", "utf8").match(/modules: .*/)[0]);',
+		// The upgrade's report: one change and one place to check by hand.
+		`if (args[0] === "upgrade" && args.includes("--report")) writeFileSync(args[args.indexOf("--report") + 1], JSON.stringify(${JSON.stringify(UPGRADE_REPORT)}));`,
 		'',
 	].join('\n'));
 	writeFileSync(join(core, 'cli-api.mjs'), [
+		'import { readFileSync } from "node:fs";',
 		'import { createRequire } from "node:module";',
 		'import { fileURLToPath } from "node:url";',
 		`export const version = ${JSON.stringify(version)};`,
@@ -82,6 +86,16 @@ export function standInProject(dir: string, version: string, api?: number, env =
 		`export const bunBinary = () => ${JSON.stringify(process.execPath)};`,
 		// The TypeScript amxts.config.ts is read with: this repository's.
 		`export const typescript = () => createRequire(${JSON.stringify(join(ROOT, 'package.json'))})("typescript");`,
+		// A Windows server; its release is the folder AMXTS_RELEASE_URL names, with the module only.
+		'export const serverSystem = () => ({ system: "windows", from: "host" });',
+		'export const release = system => ({ version, url: process.env.AMXTS_RELEASE_URL ?? "", manifest: "amxts-" + system + ".json", files: [{ asset: "amxts_amxx.dll", path: "addons/amxmodx/modules/amxts_amxx.dll", tool: false }], image: "ghcr.io/amxts/server:" + version });',
+		'export const moduleVersion = (file) => { try { return /(\\d+\\.\\d+\\.\\d+)\\+abi\\./.exec(readFileSync(file, "latin1"))?.[1] ?? null; } catch { return null; } };',
 		'',
 	].join('\n'));
 }
+
+/** What the stand-in core's upgrade task reports. */
+export const UPGRADE_REPORT = {
+	changes: [{ file: 'plugins/hello.ts', line: 1, from: '~/facade', to: '@amxts/core' }],
+	left: [{ file: 'plugins/hello.ts', line: 4, why: 'reads the words after the command\'s name' }],
+};

@@ -15,7 +15,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { addArgs, commandLine, detectPackageManager, versionOf } from './pm.mjs';
+import { addArgs, commandLine, detectPackageManager, execAmxts, versionOf } from './pm.mjs';
 import { CliError, debug } from './ui.mjs';
 
 /** The command's own package folder: packages/cli in its repository. */
@@ -26,7 +26,7 @@ export const VERSION = String(CLI_PACKAGE.version);
 /** The cores this command works with: the range a new project asks for. */
 export const CORE_RANGE = '^0.1.0';
 /** The version of `@amxts/core/cli-api` this command speaks. */
-export const CLI_API = 4;
+export const CLI_API = 5;
 
 /**
  * Run from a checkout of the command's repository (npm link, a clone) rather
@@ -108,7 +108,7 @@ function updateHint(coreIsNewer) {
 	const pm = detectPackageManager();
 	return coreIsNewer
 		? `Update the command: npm install -g @amxts/cli@latest - a project's own ${pm === 'npm' ? 'npx amxts' : `${pm} amxts`} comes with its core`
-		: `Update the core: ${commandLine(addArgs(pm, ['@amxts/core@latest']))}`;
+		: `Move the project to amxts ${VERSION}: ${execAmxts(pm)} upgrade`;
 }
 
 /**
