@@ -14,7 +14,7 @@ const greeting = "Welcome";
 // #endif
 
 server.addCommand("/hp", ({ player }) => sayHp(player));
-server.addEventListener("putinserver", event => print(0, `${greeting}, ${event.player.name}!`));
+server.addEventListener("putInServer", event => print(0, `${greeting}, ${event.player.name}!`));
 // #if menu-core
 
 // A menu made in code: its title and items can be functions of the player it is shown to.
