@@ -17,12 +17,15 @@ server.addCommand("/hp", ({ player }) => sayHp(player));
 server.addEventListener("putinserver", event => print(0, `${greeting}, ${event.player.name}!`));
 // #if menu-core
 
-// A menu made in code: its title and items can be functions of the player.
-const hello = menus.create("HELLO", { title: player => `Hello, ${player.name}` });
-hello.addItem("Wave", { onSelect: wave });
-hello.addItem(player => `Heal (${player.health} HP)`, {
-	visible: player => player.health < 100,
-	onSelect: heal,
+// A menu made in code: its title and items can be functions of the player it is shown to.
+const hello = menus.create("HELLO", { title: ({ player }) => `Hello, ${player.name}` });
+hello.addItem({ title: "Wave", onSelect: ({ player }) => print(0, `${player.name} waves`) });
+hello.addItem({
+	title: ({ player }) => `Heal (${player.health} HP)`,
+	visible: ({ player }) => player.health < 100,
+	onSelect: ({ player }) => {
+		player.health = 100;
+	},
 });
 
 server.addCommand("/menu", ({ player }) => hello.show(player));
@@ -46,13 +49,3 @@ server.addCommand("/menu", ({ player }) => hello.show(player));
 function sayHp(player: Player) {
 	print(player, `${player.name}, your HP: ${player.health}`);
 }
-// #if menu-core
-
-function wave(player: Player) {
-	print(0, `${player.name} waves`);
-}
-
-function heal(player: Player) {
-	player.health = 100;
-}
-// #endif
