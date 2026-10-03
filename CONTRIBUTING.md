@@ -26,20 +26,21 @@ project installed - `@amxts/core/package.json` resolved from the folder it
 runs in, as Node resolves it (`src/core.mjs`, `projectCore()`) - checks its
 version against `CORE_RANGE` (`^0.1.0`), imports `@amxts/core/cli-api` and
 checks `cliApi` against `CLI_API`. A core outside the range or with another
-`cliApi` is a `CliError` that says which of the two to update: an older core
-the core, a newer one the command. The contract, from the core's side, is
+`cliApi` is a `CliError` that says what to do: an older core is moved
+with `amxts upgrade`, a newer one needs a newer command. The contract, from the core's side, is
 its `src/cli-api.mjs`:
 
 | from the cli-api | used by |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | every command that needs the core; `--local` is the default for `module add` when the project's core is a checkout |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade`: `{ runtime: 'bun' \| 'node', args }`, run by `runTask()` in the project's folder |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'bun' \| 'node', args }`, run by `runTask()` in the project's folder |
 | `localModules()` | `--local`: where the official modules are on this machine |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` is read with the core's parser, so `npm create amxts` does not fetch TypeScript |
 | `toolchain()` | `info` |
 | `bunBinary()` | `src/core.mjs`: the Bun the tasks and `test` run on |
 | `includeSources()` | `src/includes.mjs`: the ReAPI release a project without a server fetches, with its sha256 |
 | `serverSystem(argv, env)`, `describeSystem()` | `info`: the system the build compiles for, and how it was decided; optional - a core without them builds for this machine |
+| `release(system)`, `moduleVersion(file)` | `src/server-update.mjs`: the server step of `upgrade` - the release's files, their manifest and where they go - and the line `dev` and `build` start with when the server's module is of another release |
 
 `init` (a project or a module), `--help`, `--version` and `info` outside a
 project need no core.
@@ -85,6 +86,8 @@ A project needs no Bun of its own.
 | `src/module.mjs`, `src/info.mjs` | `module add` (the install, the config, then `prepare()`, so the editor config names the module) / `list`, `info` |
 | `src/server.mjs` | the server a project deploys to, `AMXTS_SERVER` in `.env`: the question `init` asks, and `dev` and `build --deploy` ask when it is not set - in a terminal, not in CI |
 | `src/system.mjs` | the server's system for `init`: `hlds_linux` or `hlds.exe` beside its game folder |
+| `src/upgrade.mjs` | `upgrade`: the `@amxts/` packages moved in the project's style and installed, the core's `upgrade` task, the build, the server step, the summary; a command of another release hands the rest to the project's new one (`AMXTS_UPGRADE_FROM`) |
+| `src/server-update.mjs` | the server step: the release's manifest and files (a URL, or a folder in `AMXTS_RELEASE_URL`), the sha256 checked, a file in use found before anything changes, the old files kept, `amxts_host.amxx` out of `plugins.ini`; `serverMismatch()` for `dev` and `build` |
 
 ## Starters
 

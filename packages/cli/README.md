@@ -11,6 +11,7 @@ its package manager:
 npx amxts --help
 npx amxts dev              # build, deploy, again on every save
 npx amxts module add menu-core
+npx amxts upgrade          # the latest amxts: packages, code, build, server
 ```
 
 A new project: `npm create amxts@latest`. Installed globally

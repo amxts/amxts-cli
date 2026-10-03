@@ -26,20 +26,21 @@
 где она запущена, так, как его разрешает Node (`src/core.mjs`,
 `projectCore()`), — сверяет его версию с `CORE_RANGE` (`^0.1.0`), импортирует
 `@amxts/core/cli-api` и сверяет `cliApi` с `CLI_API`. Ядро вне диапазона или
-с другим `cliApi` — это `CliError`, который говорит, что из двух обновить:
-для старого ядра — ядро, для нового — команду. Контракт со стороны ядра — его
+с другим `cliApi` — это `CliError`, который говорит, что делать:
+старое ядро переводит `amxts upgrade`, новому нужна новая команда. Контракт со стороны ядра — его
 `src/cli-api.mjs`:
 
 | из cli-api | чем пользуется |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | каждая команда, которой нужно ядро; `--local` — поведение `module add` по умолчанию, когда ядро проекта — рабочая копия |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade`: `{ runtime: 'bun' \| 'node', args }`, их запускает `runTask()` в папке проекта |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'bun' \| 'node', args }`, их запускает `runTask()` в папке проекта |
 | `localModules()` | `--local`: где официальные модули лежат на этой машине |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` читается парсером ядра, поэтому `npm create amxts` не тянет TypeScript |
 | `toolchain()` | `info` |
 | `bunBinary()` | `src/core.mjs`: Bun, на котором работают задачи и `test` |
 | `includeSources()` | `src/includes.mjs`: релиз ReAPI, который скачивает проект без сервера, с его sha256 |
 | `serverSystem(argv, env)`, `describeSystem()` | `info`: для какой системы собирает сборка и откуда это известно; необязательны - ядро без них собирает для этой машины |
+| `release(system)`, `moduleVersion(file)` | `src/server-update.mjs`: шаг сервера в `upgrade` — файлы выпуска, их манифест и куда они кладутся — и строка, с которой начинают `dev` и `build`, когда модуль сервера из другого выпуска |
 
 `init` (проект или модуль), `--help`, `--version` и `info` вне проекта ядра
 не требуют.
@@ -85,6 +86,8 @@ postinstall `bun`. `bunFor()` (`src/core.mjs`) берёт его, Bun из PATH 
 | `src/module.mjs`, `src/info.mjs` | `module add` (установка, конфиг, затем `prepare()`, чтобы конфиг редактора называл модуль) / `list`, `info` |
 | `src/server.mjs` | сервер, на который выкладывает проект, — `AMXTS_SERVER` в `.env`: вопрос `init`, который `dev` и `build --deploy` задают, когда он не задан, — в терминале, не в CI |
 | `src/system.mjs` | система сервера для `init`: `hlds_linux` или `hlds.exe` рядом с папкой игры |
+| `src/upgrade.mjs` | `upgrade`: пакеты `@amxts/` переводятся в стиле проекта и ставятся, задача ядра `upgrade`, сборка, шаг сервера, итог; команда другого выпуска передаёт остальное новой команде проекта (`AMXTS_UPGRADE_FROM`) |
+| `src/server-update.mjs` | шаг сервера: манифест и файлы выпуска (URL или папка в `AMXTS_RELEASE_URL`), проверка sha256, занятый файл находится до любых изменений, старые файлы остаются рядом, `amxts_host.amxx` убирается из `plugins.ini`; `serverMismatch()` для `dev` и `build` |
 
 ## Стартеры
 

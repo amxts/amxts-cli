@@ -66,6 +66,7 @@ npx amxts build --watch    # собирать при каждом сохране
 npx amxts typecheck        # проверить проект так, как это делает редактор
 npx amxts test             # тесты на поддельном сервере
 npx amxts module add menu-core
+npx amxts upgrade          # перевести проект и его сервер на последний amxts
 npx amxts info             # версии и настройки для сообщения об ошибке
 ```
 

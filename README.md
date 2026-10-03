@@ -66,6 +66,7 @@ npx amxts build --watch    # build again on every save, without deploying
 npx amxts typecheck        # check the project as the editor does
 npx amxts test             # the tests, on a fake server
 npx amxts module add menu-core
+npx amxts upgrade          # move the project and its server to the latest amxts
 npx amxts info             # versions and settings, for a bug report
 ```
 
