@@ -49,6 +49,9 @@ Update the command with the package manager the project uses - `npm install @amx
 - **init:** The menu-core starter menu takes its context ([3e590ab](https://github.com/amxts/amxts-cli/commit/3e590ab))
 - **upgrade:** One command moves a project to a release ([00d3974](https://github.com/amxts/amxts-cli/commit/00d3974))
 
+- **upgrade:** Each package to its own version for the core ([426f2a9](https://github.com/amxts/amxts-cli/commit/426f2a9))
+- New modules at their version for the core ([a2be088](https://github.com/amxts/amxts-cli/commit/a2be088))
+
 ### 🩹 Fixes
 
 - **init:** `knip` 6 in a new project ([868f2e3](https://github.com/amxts/amxts-cli/commit/868f2e3))
