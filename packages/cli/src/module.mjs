@@ -17,6 +17,7 @@ import { addToConfig, CONFIG_FILE, newConfig, readConfigModules } from './config
 import { FROM_SOURCE, installedCore, needLocalCore, needProject, readJson } from './core.mjs';
 import { prepare } from './includes.mjs';
 import { addArgs, commandLine, detectPackageManager, execAmxts, installLinked, linkedFolders, versionOf } from './pm.mjs';
+import { npmRegistry, versionsFor } from './registry.mjs';
 import { c, CliError, log } from './ui.mjs';
 
 /**
@@ -46,7 +47,10 @@ export async function moduleAdd(names, options = {}) {
 
 	if (!options.skipInstall) {
 		if (!versionOf(pm)) throw new CliError(`${pm} is not installed, and this project uses it`, `Install ${pm}, or add the package by hand and run amxts module add ${names.join(' ')} --skip-install.`);
-		const argv = addArgs(pm, toInstall.map(module => installTarget(module, dir, pm)));
+		// A module from the registry at its newest version that works with the project's core.
+		const fromRegistry = core ? toInstall.filter(module => !module.dir && !/^@?[^@]+@/.test(module.name)).map(module => module.name) : [];
+		const { versions } = fromRegistry.length ? await versionsFor(npmRegistry(dir), core.version, fromRegistry) : { versions: {} };
+		const argv = addArgs(pm, toInstall.map(module => (versions[module.name] ? `${module.name}@^${versions[module.name]}` : installTarget(module, dir, pm))));
 		log.step(`${commandLine(argv)}`);
 		const result = await installLinked(argv, linkedFolders(dir, toInstall.map(module => module.dir).filter(Boolean)), { cwd: dir });
 		if (result.code !== 0) throw new CliError(`${commandLine(argv)} failed`, 'The package manager says why, above.');

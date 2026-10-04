@@ -19,6 +19,7 @@ import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLo
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
 import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
+import { npmRegistry, versionsFor } from './registry.mjs';
 import { askServer, canAsk, missingServer, serverEnv, serverFolder } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
@@ -203,9 +204,10 @@ export async function initProject(options) {
 	const written = copyTemplate(join(CLI_DIR, 'templates', 'project'), root, values, flags, path => LINT_FILES.includes(path) && !lint);
 
 	const core = { name: '@amxts/core', dir: localCore?.dir ?? null };
+	const versions = await moduleVersions(installed);
 	const devDependencies = {
 		[core.name]: specFor(core, root, pm, CORE_RANGE),
-		...Object.fromEntries(installed.map(module => [module.name, specFor(module, root, pm)])),
+		...Object.fromEntries(installed.map(module => [module.name, specFor(module, root, pm, versions[module.name] ? `^${versions[module.name]}` : 'latest')])),
 		...TOOLS,
 		...(lint ? LINT_DEPENDENCIES : {}),
 	};
@@ -306,6 +308,25 @@ export async function initProject(options) {
 	p.note(steps.join('\n'), 'Next steps');
 	p.outro(`Docs: ${c.cyan('https://amxts.github.io/docs/getting-started/quick-start')}`);
 	if (options.install !== false && pmVersion && !installedOk) process.exitCode = 1;
+}
+
+/**
+ * The modules from the registry, each at its newest version that works with
+ * the newest core of CORE_RANGE - the core the project gets; a module from a
+ * folder, or a package named with its version, is left to its spec. When the
+ * registry does not answer, none: `latest`, and the install says why.
+ * @param {import('./catalog.mjs').ModuleRef[]} modules
+ * @returns {Promise<Record<string, string>>} the versions, by name
+ */
+async function moduleVersions(modules) {
+	const names = modules.filter(module => !module.dir && !/^@?[^@]+@/.test(module.name)).map(module => module.name);
+	if (!names.length) return {};
+	try {
+		return (await versionsFor(npmRegistry(process.cwd()), CORE_RANGE, names)).versions;
+	} catch (error) {
+		if (error instanceof CliError && !/npm view/.test(error.message)) throw error;
+		return {};
+	}
 }
 
 /** `"latest"` in package.json, after the install, as the version it installed: `^1.6.2`. */
