@@ -87,7 +87,7 @@ npx amxts info             # версии и настройки для сооб�
 
 ```
 ✖ @amxts/core 0.1.0 is not a core amxts 0.2.0 works with (^0.2.0)
-  Update the core: npm install -D @amxts/core@latest
+  Move the project to amxts 0.2.0: npx amxts upgrade
 ```
 
 Создать проект или модуль можно без ядра, поэтому `npm create amxts`

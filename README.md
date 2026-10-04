@@ -87,7 +87,7 @@ the two to update:
 
 ```
 ✖ @amxts/core 0.1.0 is not a core amxts 0.2.0 works with (^0.2.0)
-  Update the core: npm install -D @amxts/core@latest
+  Move the project to amxts 0.2.0: npx amxts upgrade
 ```
 
 Creating a project or a module needs no core, so `npm create amxts` works
