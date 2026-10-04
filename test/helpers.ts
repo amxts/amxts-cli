@@ -6,9 +6,15 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { CORE_RANGE } from '../packages/cli/src/core.mjs';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const BIN = join(ROOT, 'packages', 'cli', 'bin', 'amxts.mjs');
+
+/** A core this command drives: the first of its CORE_RANGE. */
+export const CORE = CORE_RANGE.replace(/^\^/, '');
+/** A core of the next minor version, which this command does not drive. */
+export const NEXT_CORE = CORE.replace(/^(\d+)\.(\d+)\.\d+$/, (_, major, minor) => `${major}.${Number(minor) + 1}.0`);
 
 /** The environment a command runs in: no colors, as from a shell - no package manager's agent, which `bun run test` would pass on and the command would take for the user's. */
 function environment(env: Record<string, string>) {

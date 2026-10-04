@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import { parseArgs } from '../packages/cli/src/args.mjs';
 import { configEntries, resolveModule, specFor, withRequired } from '../packages/cli/src/catalog.mjs';
 import { addToConfig, configModules } from '../packages/cli/src/config.mjs';
-import { localCore } from '../packages/cli/src/core.mjs';
+import { CORE_RANGE, localCore } from '../packages/cli/src/core.mjs';
 import { LINT_DEPENDENCIES } from '../packages/cli/src/lint.mjs';
 import { fill } from '../packages/cli/src/template.mjs';
 import { closest } from '../packages/cli/src/ui.mjs';
@@ -235,7 +235,7 @@ describe('the command line', () => {
 			const root = join(dir, 'plain');
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.scripts.lint).toBeUndefined();
-			expect(pkg.devDependencies).toEqual({ '@amxts/core': '^0.1.0', '@types/bun': '^1.4.2', 'knip': '^6.39.0' });
+			expect(pkg.devDependencies).toEqual({ '@amxts/core': CORE_RANGE, '@types/bun': '^1.4.2', 'knip': '^6.39.0' });
 			const plugin = readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8');
 			expect(plugin).not.toContain('@amxts/menu-core');
 			// The core's own menu, no module's.
@@ -301,7 +301,7 @@ describe('the command line', () => {
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.name).toBe('@you/kill-feed');
 			expect(pkg.amxts).toEqual({ module: 'src/index.ts', natives: 'src/natives.ts', include: 'include/kill_feed.inc' });
-			expect(pkg.peerDependencies).toEqual({ '@amxts/core': '^0.1.0' });
+			expect(pkg.peerDependencies).toEqual({ '@amxts/core': CORE_RANGE });
 			// From a checkout the module develops against the core on this machine.
 			expect(pkg.devDependencies['@amxts/core']).toStartWith('file:');
 			expect(Object.keys(pkg.scripts)).toEqual(['build', 'check', 'test', 'lint', 'lint:fix']);

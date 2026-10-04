@@ -4,8 +4,8 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // @ts-ignore - bun:test types not available during type checking
 import { describe, expect, test } from 'bun:test';
-import { CLI_API, localCore, satisfies } from '../packages/cli/src/core.mjs';
-import { amxts, inTemp, standInProject } from './helpers';
+import { CLI_API, CORE_RANGE, localCore, satisfies, VERSION } from '../packages/cli/src/core.mjs';
+import { amxts, CORE, inTemp, NEXT_CORE, standInProject } from './helpers';
 
 test('a core version is one the command works with: the same major, from the range up', () => {
 	expect(satisfies('2.0.0', '^2.0.0')).toBe(true);
@@ -27,7 +27,7 @@ test('below 1.0 the minor is the breaking number', () => {
 describe('the project\'s core', () => {
 	test('the command runs the core\'s task in the project', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
+			standInProject(dir, CORE, CLI_API);
 			const run = amxts(['prepare'], dir);
 			expect(run.out).toBe('task prepare\n');
 			expect(run.code).toBe(0);
@@ -36,7 +36,7 @@ describe('the project\'s core', () => {
 
 	test('a bun task runs on the Bun the core comes with', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
+			standInProject(dir, CORE, CLI_API);
 			const run = amxts(['build'], dir);
 			expect(run.out).toContain('task build\n');
 			expect(run.code).toBe(0);
@@ -45,9 +45,9 @@ describe('the project\'s core', () => {
 
 	test('build prepares quietly - the build says what the project is - and prepare says what it wrote', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
+			standInProject(dir, CORE, CLI_API);
 			const run = amxts(['build'], dir);
-			expect(run.out).toBe('amxts 0.1.0 · build\ntask prepare --quiet\ntask build\n');
+			expect(run.out).toBe(`amxts ${CORE} · build\ntask prepare --quiet\ntask build\n`);
 			expect(amxts(['prepare'], dir).out).toBe('task prepare\n');
 		});
 	});
@@ -66,27 +66,27 @@ describe('the project\'s core', () => {
 			standInProject(dir, '0.0.5', CLI_API);
 			const run = amxts(['build'], dir);
 			expect(run.code).toBe(1);
-			expect(run.out).toContain('✖ @amxts/core 0.0.5 is not a core amxts 0.1.0 works with (^0.1.0)\n  Move the project to amxts 0.1.0: npx amxts upgrade\n');
+			expect(run.out).toContain(`✖ @amxts/core 0.0.5 is not a core amxts ${VERSION} works with (${CORE_RANGE})\n  Move the project to amxts ${VERSION}: npx amxts upgrade\n`);
 		});
 	});
 
 	test('a newer core: update the command', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.2.0', CLI_API);
+			standInProject(dir, NEXT_CORE, CLI_API);
 			const run = amxts(['build'], dir);
 			expect(run.code).toBe(1);
-			expect(run.out).toContain('✖ @amxts/core 0.2.0 is not a core amxts 0.1.0 works with (^0.1.0)\n  Update the command: npm install -g @amxts/cli@latest');
+			expect(run.out).toContain(`✖ @amxts/core ${NEXT_CORE} is not a core amxts ${VERSION} works with (${CORE_RANGE})\n  Update the command: npm install -g @amxts/cli@latest`);
 		});
 	});
 
 	test('a core without the cli-api, and one that speaks another', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0');
-			expect(amxts(['build'], dir).out).toContain('✖ @amxts/core 0.1.0 has no cli-api, which amxts 0.1.0 runs it through\n  Move the project to amxts 0.1.0: npx amxts upgrade');
+			standInProject(dir, CORE);
+			expect(amxts(['build'], dir).out).toContain(`✖ @amxts/core ${CORE} has no cli-api, which amxts ${VERSION} runs it through\n  Move the project to amxts ${VERSION}: npx amxts upgrade`);
 		});
 		inTemp((dir) => {
-			standInProject(dir, '0.1.3', CLI_API + 1);
-			expect(amxts(['build'], dir).out).toContain(`✖ @amxts/core 0.1.3 speaks cli-api ${CLI_API + 1}, amxts 0.1.0 speaks ${CLI_API}\n  Update the command`);
+			standInProject(dir, CORE, CLI_API + 1);
+			expect(amxts(['build'], dir).out).toContain(`✖ @amxts/core ${CORE} speaks cli-api ${CLI_API + 1}, amxts ${VERSION} speaks ${CLI_API}\n  Update the command`);
 		});
 	});
 });

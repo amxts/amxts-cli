@@ -7,14 +7,14 @@ import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { CLI_API } from '../packages/cli/src/core.mjs';
 import { saveServer } from '../packages/cli/src/server.mjs';
-import { amxts, amxtsInTerminal, inTemp, ROOT, serverOf, standInProject } from './helpers';
+import { amxts, amxtsInTerminal, CORE, inTemp, ROOT, serverOf, standInProject } from './helpers';
 
 /** The catalog the command ships: no network in a test. */
 const CATALOG = { AMXTS_CATALOG: join(ROOT, 'packages', 'cli', 'src', 'modules.json') };
 
 test('module add lists the module in amxts.config.ts, then prepares: the editor config names it', () => {
 	inTemp((dir) => {
-		standInProject(dir, '0.1.0', CLI_API);
+		standInProject(dir, CORE, CLI_API);
 		writeFileSync(join(dir, 'amxts.config.ts'), 'export default defineConfig({\n\tmodules: [],\n});\n');
 		const run = amxts(['module', 'add', 'menu-core', '--skip-install'], dir, CATALOG);
 		expect(run.code).toBe(0);
@@ -38,7 +38,7 @@ describe('the server a command deploys to', () => {
 
 	test('dev without one asks for it in a terminal, keeps it in .env and goes on', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API, OS);
+			standInProject(dir, CORE, CLI_API, OS);
 			const run = amxtsInTerminal(['dev'], dir, `${serverOf(dir)}\r`);
 			expect(run.out).toContain('Where is the server?');
 			expect(run.out).toContain('task build --deploy --watch');
@@ -49,7 +49,7 @@ describe('the server a command deploys to', () => {
 
 	test('elsewhere nothing is asked: the build says it is missing', () => {
 		inTemp((dir) => {
-			standInProject(dir, '0.1.0', CLI_API, OS);
+			standInProject(dir, CORE, CLI_API, OS);
 			const run = amxts(['build', '--deploy'], dir);
 			expect(run.out).not.toContain('Where is the server?');
 			expect(run.out).toContain('task build --deploy');
