@@ -2,10 +2,12 @@
 //
 //   amxts upgrade [--to <version>] [--no-server] [--server-only] [--dry-run]
 //
-// 1. The packages: every @amxts/ package in package.json - the core, the
-//    command, the official modules - to the latest version on the registry
-//    npm is set to, or to --to, in the style the project writes its ranges
-//    (`^0.1.0` → `^0.2.0`); then the project's own package manager installs.
+// 1. The packages: the core to the latest version on the registry npm is set
+//    to, or to --to; every other @amxts/ package in package.json - the
+//    official modules, the command - to its own newest version that works
+//    with that core (registry.mjs), in the style the project writes its
+//    ranges (`^0.1.0` → `^0.2.0`); then the project's own package manager
+//    installs.
 // 2. The code: the new core's rewrites (its `upgrade` task), each change listed.
 // 3. The build: `amxts build`.
 // 4. The server in AMXTS_SERVER: its module, and its compiler where it has
@@ -25,11 +27,15 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { coreDirFrom, loadCore, needProject, readJson, runTask, satisfies, VERSION } from './core.mjs';
 import { prepare } from './includes.mjs';
-import { commandLine, detectPackageManager, installArgs, installLinked, linkedFolders, run } from './pm.mjs';
+import { commandLine, detectPackageManager, installArgs, installLinked, linkedFolders } from './pm.mjs';
+import { CORE, npmRegistry, versionsFor } from './registry.mjs';
 import { updateServer } from './server-update.mjs';
 import { banner, c, CliError, log } from './ui.mjs';
 
 const VERSION_TEXT = /^v?(\d+\.\d+\.\d+(?:-[\d.a-z-]+)?)$/i;
+
+/** A spec upgrade moves: a version, with `^`, `~`, `=` or `>=` before it. */
+const MOVABLE = /^([~^]|>?=)?\d+\.\d+\.\d+(?:-[\d.a-z-]+)?$/i;
 
 /**
  * A spec at another version, in the style it was written: `^0.1.0` →
@@ -39,7 +45,7 @@ const VERSION_TEXT = /^v?(\d+\.\d+\.\d+(?:-[\d.a-z-]+)?)$/i;
  * @param {string} version
  */
 export function bumpSpec(spec, version) {
-	const match = /^([~^]|>?=)?\d+\.\d+\.\d+(?:-[\d.a-z-]+)?$/i.exec(spec.trim());
+	const match = MOVABLE.exec(spec.trim());
 	return match ? `${match[1] ?? ''}${version}` : null;
 }
 
@@ -47,19 +53,26 @@ export function bumpSpec(spec, version) {
  * @typedef {object} Bump
  * @property {string} name the package
  * @property {string} spec as package.json has it
- * @property {string | null} to the spec at the new version; null when it is left as it is
+ * @property {string | null} version the version it goes to; null when it is left as it is
+ * @property {string | null} to the spec at that version; null when it is left as it is
  */
 
+/** The @amxts/ packages of a project's package.json, with their specs. */
+function amxtsPackages(pkg) {
+	return Object.entries({ ...pkg.dependencies, ...pkg.devDependencies }).filter(([name]) => name.startsWith('@amxts/')).map(([name, spec]) => ({ name, spec: String(spec) }));
+}
+
 /**
- * The @amxts/ packages of a project's package.json, and their specs at `version`.
+ * The @amxts/ packages of a project's package.json, and their specs at the versions they go to.
  * @param {Record<string, any>} pkg
- * @param {string} version
+ * @param {Record<string, string | null>} versions each package's new version, by name
  * @returns {Bump[]} the packages
  */
-export function packageBumps(pkg, version) {
-	return Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })
-		.filter(([name]) => name.startsWith('@amxts/'))
-		.map(([name, spec]) => ({ name, spec, to: bumpSpec(String(spec), version) }));
+export function packageBumps(pkg, versions) {
+	return amxtsPackages(pkg).map(({ name, spec }) => {
+		const to = versions[name] ? bumpSpec(spec, versions[name]) : null;
+		return { name, spec, version: to && versions[name], to };
+	});
 }
 
 /** package.json's text with the specs moved, everything else as it was written. */
@@ -73,25 +86,6 @@ export function writeBumps(text, bumps) {
 /** The version of a package the project has installed, or null. */
 function installedVersion(dir, name) {
 	return readJson(join(dir, 'node_modules', name, 'package.json'))?.version ?? null;
-}
-
-/**
- * The registry npm is set to - NPM_CONFIG_REGISTRY, .npmrc - through npm
- * itself: the latest version of a package, and whether it has a version.
- * @param {string} dir the project, whose .npmrc npm reads
- */
-export function npmRegistry(dir) {
-	const view = async (spec) => {
-		const result = await run(['npm', 'view', spec, 'version'], { cwd: dir, quiet: true });
-		if (result.code !== 0 && !/E404|404 Not Found/.test(result.output)) {
-			throw new CliError(`npm view ${spec} failed`, result.output.trim().split('\n').slice(-5).join('\n'));
-		}
-		return result.code === 0 ? result.output.trim().split('\n').pop()?.trim().replace(/^'|'$/g, '') ?? '' : '';
-	};
-	return {
-		latest: async name => view(name),
-		has: async (name, version) => (await view(`${name}@${version}`)) === version,
-	};
 }
 
 /** Runs the project's install, quietly, with a line before and after; its output when it fails. */
@@ -133,8 +127,8 @@ function rewriteCode(core, dryRun) {
 
 /**
  * @typedef {object} Outcome
- * @property {string} version the release the project moves to
- * @property {{ name: string, from: string | null, to: string | null, spec: string }[]} packages each @amxts/ package; `to` null when left as it is
+ * @property {string} version the release the project moves to: the core's version
+ * @property {{ name: string, from: string | null, version: string | null, to: string | null, spec: string }[]} packages each @amxts/ package, and the version and spec it goes to; null when left as it is
  * @property {{ files: string[], left: { file: string, line: number, why: string }[] } | null} code what the rewrites changed and left; null when they did not run
  * @property {'built' | 'failed' | null} build how the build went; null when it did not run
  * @property {import('./server-update.mjs').ServerOutcome | null} server the server step's result; null with --no-server
@@ -152,7 +146,7 @@ export function summary(outcome) {
 	const moved = outcome.packages.filter(each => each.to);
 	const width = Math.max(0, ...moved.map(each => each.name.length));
 	lines.push(c.bold(outcome.dryRun ? `Dry run: amxts ${outcome.version}, nothing was changed` : `Upgraded to amxts ${outcome.version}`));
-	for (const each of moved) lines.push(`  ${each.name.padEnd(width)}  ${each.from === outcome.version ? `${outcome.version} ${c.dim('(already)')}` : `${each.from ?? each.spec} ${c.dim('→')} ${outcome.version}`}`);
+	for (const each of moved) lines.push(`  ${each.name.padEnd(width)}  ${each.from === each.version ? `${each.version} ${c.dim('(already)')}` : `${each.from ?? each.spec} ${c.dim('→')} ${each.version}`}`);
 	for (const each of outcome.packages.filter(one => !one.to)) lines.push(`  ${each.name.padEnd(width)}  ${each.spec} ${c.dim('(left as it is)')}`);
 	if (outcome.code) {
 		lines.push(outcome.code.files.length ? `  ${c.green('✔')} ${would}rewritten: ${outcome.code.files.join(', ')}` : `  ${c.green('✔')} the code already uses this API`);
@@ -169,7 +163,7 @@ export function summary(outcome) {
 /**
  * `amxts upgrade`.
  * @param {{ to?: string, server?: boolean, serverOnly?: boolean, dryRun?: boolean }} options
- * @param {{ dir?: string, registry?: ReturnType<typeof npmRegistry>, install?: typeof installProject }} [deps] what the tests replace
+ * @param {{ dir?: string, registry?: import('./registry.mjs').Registry, install?: typeof installProject }} [deps] what the tests replace
  * @returns {Promise<Outcome | null>} what was done; null when it was handed to the project's command
  */
 export async function upgrade({ to, server = true, serverOnly = false, dryRun = false }, { dir = needProject(), registry = npmRegistry(dir), install = installProject } = {}) {
@@ -186,15 +180,12 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 	}
 
 	const pkg = readJson(join(dir, 'package.json')) ?? {};
-	const version = to ? VERSION_TEXT.exec(to)[1] : await registry.latest('@amxts/core');
-	if (!version) throw new CliError('@amxts/core is not on the registry', 'npm config get registry says which one npm asks.');
-	const bumps = packageBumps(pkg, version);
+	const { version, versions } = handedFrom ? installed(dir, pkg, VERSION_TEXT.exec(to)[1]) : await newest(registry, dir, pkg, to ? VERSION_TEXT.exec(to)[1] : 'latest');
+	const bumps = packageBumps(pkg, versions);
 	const from = handedFrom ?? Object.fromEntries(bumps.map(bump => [bump.name, installedVersion(dir, bump.name)]));
-	const moving = bumps.filter(bump => bump.to && (bump.to !== bump.spec || from[bump.name] !== version));
+	const moving = bumps.filter(bump => bump.to && (bump.to !== bump.spec || from[bump.name] !== bump.version));
 
 	if (!handedFrom) {
-		const missing = (await Promise.all(moving.map(async bump => (await registry.has(bump.name, version) ? null : bump.name)))).filter(Boolean);
-		if (missing.length) throw new CliError(`${missing.join(', ')} ${version} is not on the registry`, 'Each @amxts/ package moves to the same version: give --to one they all have.');
 		log.step(`Packages: amxts ${version}${to ? '' : c.dim(' (latest)')}`);
 		for (const bump of bumps) log.info(`${bump.name}  ${bump.spec} ${!bump.to ? c.dim('(left as it is)') : moving.includes(bump) ? `${c.dim('→')} ${bump.to}` : c.dim('(already)')}`);
 		if (!dryRun && moving.length) {
@@ -218,11 +209,11 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 	}
 
 	// With the new core installed - or, in a dry run, the installed one when it is already that version.
-	const core = coreDir && (!dryRun || from['@amxts/core'] === version) ? await loadCore(coreDir) : null;
+	const core = coreDir && (!dryRun || from[CORE] === version) ? await loadCore(coreDir) : null;
 	/** @type {Outcome} */
 	const outcome = {
 		version,
-		packages: bumps.map(bump => ({ name: bump.name, spec: bump.spec, from: from[bump.name], to: bump.to })),
+		packages: bumps.map(bump => ({ name: bump.name, spec: bump.spec, from: from[bump.name], version: bump.version, to: bump.to })),
 		code: null,
 		build: null,
 		server: null,
@@ -250,6 +241,24 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 	}
 	console.log(['', ...summary(outcome)].join('\n'));
 	return outcome;
+}
+
+/**
+ * The core of `core` - a version, or `latest` - and the version each @amxts/
+ * package of the project goes to: the core's own, the others' newest that
+ * works with it. Only a package whose spec moves is asked for, and nothing
+ * when the project has that core already and nothing else moves.
+ */
+async function newest(registry, dir, pkg, core) {
+	const names = amxtsPackages(pkg).filter(each => each.name !== CORE && MOVABLE.test(each.spec.trim())).map(each => each.name);
+	if (!names.length && installedVersion(dir, CORE) === core) return { version: core, versions: { [CORE]: core } };
+	const found = await versionsFor(registry, core, names);
+	return { version: found.core, versions: { ...found.versions, [CORE]: found.core } };
+}
+
+/** The versions the command that handed the upgrade on installed: the core's, and each package's. */
+function installed(dir, pkg, version) {
+	return { version, versions: Object.fromEntries(amxtsPackages(pkg).map(each => [each.name, installedVersion(dir, each.name)])) };
 }
 
 function needCore() {

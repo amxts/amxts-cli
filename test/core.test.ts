@@ -24,6 +24,18 @@ test('below 1.0 the minor is the breaking number', () => {
 	expect(satisfies('1.0.0', '^0.1.0')).toBe(false);
 });
 
+test('a module\'s range for the core, as npm reads it', () => {
+	expect(satisfies('0.2.3', '~0.2.1')).toBe(true);
+	expect(satisfies('0.3.0', '~0.2.1')).toBe(false);
+	expect(satisfies('0.3.0', '>=0.2.0 <0.4.0')).toBe(true);
+	expect(satisfies('0.4.0', '>=0.2.0 <0.4.0')).toBe(false);
+	expect(satisfies('0.3.1', '^0.2.0 || ^0.3.0')).toBe(true);
+	expect(satisfies('0.2.0', '0.2.0')).toBe(true);
+	expect(satisfies('0.2.1', '0.2.0')).toBe(false);
+	expect(satisfies('0.0.6', '^0.0.5')).toBe(false);
+	expect(satisfies('9.9.9', '*')).toBe(true);
+});
+
 describe('the project\'s core', () => {
 	test('the command runs the core\'s task in the project', () => {
 		inTemp((dir) => {

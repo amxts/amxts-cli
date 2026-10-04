@@ -9,10 +9,11 @@ import { dirname, join } from 'node:path';
 import process from 'node:process';
 // @ts-ignore - bun:test types not available during type checking
 import { describe, expect, test } from 'bun:test';
-import { CLI_API, localCore } from '../packages/cli/src/core.mjs';
+import { CLI_API, localCore, VERSION } from '../packages/cli/src/core.mjs';
+import { versionsFor } from '../packages/cli/src/registry.mjs';
 import { serverMismatch, updateServer, withoutHost } from '../packages/cli/src/server-update.mjs';
 import { bumpSpec, packageBumps, summary, upgrade, writeBumps } from '../packages/cli/src/upgrade.mjs';
-import { amxts, serverOf, standInProject, UPGRADE_REPORT } from './helpers';
+import { amxts, CORE, NEXT_CORE, serverOf, standInProject, UPGRADE_REPORT } from './helpers';
 
 delete process.env.AMXTS_SERVER;
 delete process.env.AMXTS_SERVER_OS;
@@ -38,13 +39,40 @@ function write(path: string, text: string | Buffer) {
 /** A module file as the build makes one: binary, with its ABI string inside. */
 const moduleOf = (version: string, hash = '0123abcd') => Buffer.concat([Buffer.from([0x4D, 0x5A, 0x90, 0]), Buffer.from(`${version}+abi.${hash}\0`)]);
 
-/** What an install of another core changes: its version. */
+/** What an install of another core changes: the stand-in's version. */
 function coreVersion(dir: string, version: string) {
 	for (const file of ['package.json', 'cli-api.mjs']) {
 		const path = join(dir, 'node_modules', '@amxts', 'core', file);
-		writeFileSync(path, readFileSync(path, 'utf8').replace(/0\.1\.0/g, version));
+		writeFileSync(path, readFileSync(path, 'utf8').replaceAll(CORE, version));
 	}
 }
+
+/** A patch of the core this command drives. */
+const PATCH = CORE.replace(/\d+$/, '5');
+
+interface Release {
+	version: string;
+	dependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+}
+
+/** A registry of these releases, as npm view gives them - `*`, a version, `latest` - and what it was asked, in order. */
+function registryOf(releases: Record<string, Release[]>) {
+	const asked: string[] = [];
+	const versions = async (name: string, spec = '*') => {
+		asked.push(`${name}@${spec}`);
+		const all = releases[name] ?? [];
+		return spec === '*' ? all : spec === 'latest' ? all.slice(-1) : all.filter(each => each.version === spec);
+	};
+	return { asked, versions };
+}
+
+/** A module of the core's minor version, and others of the minor versions around it. */
+const MENU_CORE = [
+	{ version: '0.1.0', peerDependencies: { '@amxts/core': '^0.0.1' } },
+	{ version: '0.3.0', peerDependencies: { '@amxts/core': `^${CORE}` } },
+	{ version: '0.4.0', peerDependencies: { '@amxts/core': `^${NEXT_CORE}` } },
+];
 
 const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
 
@@ -65,47 +93,57 @@ describe('the packages', () => {
 		for (const spec of ['file:../amxts', 'link:../core', 'latest', '*', '^0.1.0 || ^0.2.0', 'workspace:*']) expect(bumpSpec(spec, '0.2.0')).toBeNull();
 	});
 
-	test('every @amxts/ package moves, and package.json keeps how it is written', () => {
+	test('every @amxts/ package moves to its own version, and package.json keeps how it is written', () => {
 		const text = '{\n  "name": "my-server",\n  "dependencies": { "@amxts/menu-core": "~0.1.0" },\n  "devDependencies": {\n    "@amxts/core":   "^0.1.0",\n    "@amxts/cli": "file:../cli",\n    "typescript": "^0.1.0"\n  }\n}\n';
-		const bumps = packageBumps(JSON.parse(text), '0.2.0');
+		const bumps = packageBumps(JSON.parse(text), { '@amxts/core': '0.2.0', '@amxts/menu-core': '0.1.3' });
 		expect(bumps).toEqual([
-			{ name: '@amxts/menu-core', spec: '~0.1.0', to: '~0.2.0' },
-			{ name: '@amxts/core', spec: '^0.1.0', to: '^0.2.0' },
-			{ name: '@amxts/cli', spec: 'file:../cli', to: null },
+			{ name: '@amxts/menu-core', spec: '~0.1.0', version: '0.1.3', to: '~0.1.3' },
+			{ name: '@amxts/core', spec: '^0.1.0', version: '0.2.0', to: '^0.2.0' },
+			{ name: '@amxts/cli', spec: 'file:../cli', version: null, to: null },
 		]);
-		expect(writeBumps(text, bumps)).toBe(text.replace('"~0.1.0"', '"~0.2.0"').replace('"^0.1.0",', '"^0.2.0",'));
+		expect(writeBumps(text, bumps)).toBe(text.replace('"~0.1.0"', '"~0.1.3"').replace('"^0.1.0",', '"^0.2.0",'));
+	});
+
+	test('each package goes to its own newest version that works with the core', async () => {
+		const registry = registryOf({
+			'@amxts/core': [{ version: '0.1.0' }, { version: '0.2.0', dependencies: { '@amxts/cli': '^0.2.0' } }, { version: '0.2.1', dependencies: { '@amxts/cli': '^0.2.0' } }, { version: '0.3.0' }],
+			'@amxts/config-core': [{ version: '0.1.0', peerDependencies: { '@amxts/core': '^0.1.0' } }, { version: '0.1.1', peerDependencies: { '@amxts/core': '^0.2.0' } }],
+			'@amxts/menu-core': [{ version: '0.2.0', peerDependencies: { '@amxts/config-core': '^0.1.1', '@amxts/core': '^0.2.0' } }, { version: '0.3.0', peerDependencies: { '@amxts/core': '^0.3.0' } }],
+			'@amxts/cli': ['0.1.0', '0.2.0', '0.2.3', '0.3.0'].map(version => ({ version })),
+			'@you/greeter': [{ version: '1.4.0' }],
+		});
+		const names = ['@amxts/config-core', '@amxts/menu-core', '@amxts/cli', '@you/greeter'];
+		expect(await versionsFor(registry, '0.2.0', names)).toEqual({
+			core: '0.2.0',
+			versions: { '@amxts/config-core': '0.1.1', '@amxts/menu-core': '0.2.0', '@amxts/cli': '0.2.3', '@you/greeter': '1.4.0' },
+		});
+		expect(registry.asked).toEqual(['@amxts/core@0.2.0', ...names.map(name => `${name}@*`)]);
+		// A range: its newest core.
+		expect((await versionsFor(registry, '^0.2.0', [])).core).toBe('0.2.1');
+		await expect(versionsFor(registry, '0.3.0', ['@amxts/config-core', '@you/nothing'])).rejects.toThrow('@amxts/config-core has no version for @amxts/core 0.3.0\n@you/nothing is not on the registry');
 	});
 
 	test('each package manager installs what moved: npm, pnpm, yarn, bun - by its lockfile', async () => {
 		for (const [pm, lockfile] of [['npm', 'package-lock.json'], ['pnpm', 'pnpm-lock.yaml'], ['yarn', 'yarn.lock'], ['bun', 'bun.lock']]) {
 			await inProject(async (dir) => {
-				standInProject(dir, '0.1.0', CLI_API);
-				writeFileSync(join(dir, 'package.json'), '{\n\t"name": "my-server",\n\t"devDependencies": {\n\t\t"@amxts/core": "^0.1.0",\n\t\t"@amxts/menu-core": "0.1.0"\n\t}\n}\n');
+				standInProject(dir, CORE, CLI_API);
+				const text = (core: string, menu: string) => `{\n\t"name": "my-server",\n\t"devDependencies": {\n\t\t"@amxts/core": "^${core}",\n\t\t"@amxts/menu-core": "${menu}"\n\t}\n}\n`;
+				writeFileSync(join(dir, 'package.json'), text(CORE, '0.1.0'));
 				writeFileSync(join(dir, lockfile), '');
-				const asked: string[] = [];
 				const installed: string[] = [];
-				const registry = {
-					latest: async (name: string) => {
-						asked.push(`latest ${name}`);
-						return '0.1.5';
-					},
-					has: async (name: string, version: string) => {
-						asked.push(`${name}@${version}`);
-						return true;
-					},
-				};
+				const registry = registryOf({ '@amxts/core': [{ version: CORE }, { version: PATCH }], '@amxts/menu-core': MENU_CORE });
 				// The install puts the new core in place.
 				const install = async (at: string, by: string) => {
 					installed.push(`${by} in ${at === dir ? 'the project' : at}`);
-					coreVersion(dir, '0.1.5');
+					coreVersion(dir, PATCH);
 				};
 				const outcome = await upgrade({ server: false }, { dir, registry, install });
 				expect(installed).toEqual([`${pm} in the project`]);
-				expect(asked).toEqual(['latest @amxts/core', '@amxts/core@0.1.5', '@amxts/menu-core@0.1.5']);
-				expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe('{\n\t"name": "my-server",\n\t"devDependencies": {\n\t\t"@amxts/core": "^0.1.5",\n\t\t"@amxts/menu-core": "0.1.5"\n\t}\n}\n');
+				expect(registry.asked).toEqual(['@amxts/core@latest', '@amxts/menu-core@*']);
+				expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text(PATCH, '0.3.0'));
 				expect(outcome!.packages).toEqual([
-					{ name: '@amxts/core', spec: '^0.1.0', from: '0.1.0', to: '^0.1.5' },
-					{ name: '@amxts/menu-core', spec: '0.1.0', from: null, to: '0.1.5' },
+					{ name: '@amxts/core', spec: `^${CORE}`, from: CORE, version: PATCH, to: `^${PATCH}` },
+					{ name: '@amxts/menu-core', spec: '0.1.0', from: null, version: '0.3.0', to: '0.3.0' },
 				]);
 				expect(outcome!.code).toEqual({ files: ['plugins/hello.ts'], left: UPGRADE_REPORT.left });
 				expect(outcome!.build).toBe('built');
@@ -114,26 +152,27 @@ describe('the packages', () => {
 		}
 	});
 
-	test('a version the registry does not have changes nothing', async () => {
+	test('a core the registry does not have, or a module with no version for it, changes nothing', async () => {
 		await inProject(async (dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
-			const text = '{ "devDependencies": { "@amxts/core": "^0.1.0", "@amxts/resemiclip": "^0.1.0" } }\n';
+			standInProject(dir, CORE, CLI_API);
+			const text = `{ "devDependencies": { "@amxts/core": "^${CORE}", "@amxts/resemiclip": "^0.1.0" } }\n`;
 			writeFileSync(join(dir, 'package.json'), text);
-			const registry = { latest: async () => '0.1.5', has: async (name: string) => name === '@amxts/core' };
+			const registry = registryOf({ '@amxts/core': [{ version: CORE }, { version: PATCH }], '@amxts/resemiclip': [{ version: '0.1.0', peerDependencies: { '@amxts/core': '^0.0.1' } }] });
 			const install = async () => {
 				throw new Error('installed');
 			};
-			expect(upgrade({ to: '0.1.5' }, { dir, registry, install })).rejects.toThrow('@amxts/resemiclip 0.1.5 is not on the registry');
+			await expect(upgrade({ to: PATCH }, { dir, registry, install })).rejects.toThrow(`@amxts/resemiclip has no version for @amxts/core ${PATCH}`);
+			await expect(upgrade({ to: '9.9.9' }, { dir, registry, install })).rejects.toThrow('@amxts/core 9.9.9 is not on the registry');
 			expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text);
 		});
 	});
 
 	test('a dry run says what would move and changes nothing; the rewrites wait for the new core', async () => {
 		await inProject(async (dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
-			const text = '{ "devDependencies": { "@amxts/core": "^0.1.0" } }\n';
+			standInProject(dir, CORE, CLI_API);
+			const text = `{ "devDependencies": { "@amxts/core": "^${CORE}" } }\n`;
 			writeFileSync(join(dir, 'package.json'), text);
-			const registry = { latest: async () => '0.1.5', has: async () => true };
+			const registry = registryOf({ '@amxts/core': [{ version: PATCH }] });
 			const install = async () => {
 				throw new Error('installed');
 			};
@@ -141,23 +180,23 @@ describe('the packages', () => {
 			expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text);
 			expect(outcome!.code).toBeNull();
 			expect(outcome!.build).toBeNull();
-			expect(outcome!.server!.line).toBe('the module of amxts 0.1.5 goes in once @amxts/core 0.1.5 is installed');
-			expect(summary(outcome!)[0]).toBe('Dry run: amxts 0.1.5, nothing was changed');
+			expect(outcome!.server!.line).toBe(`the module of amxts ${PATCH} goes in once @amxts/core ${PATCH} is installed`);
+			expect(summary(outcome!)[0]).toBe(`Dry run: amxts ${PATCH}, nothing was changed`);
 		});
 	});
 
 	test('a core of another release: the command it came with does the rest', async () => {
 		await inProject(async (dir) => {
-			standInProject(dir, '0.1.0', CLI_API);
-			writeFileSync(join(dir, 'package.json'), '{ "devDependencies": { "@amxts/core": "^0.1.0" } }\n');
+			standInProject(dir, CORE, CLI_API);
+			writeFileSync(join(dir, 'package.json'), `{ "devDependencies": { "@amxts/core": "^${CORE}" } }\n`);
 			const cli = join(dir, 'node_modules', '@amxts', 'cli');
-			write(join(cli, 'package.json'), JSON.stringify({ name: '@amxts/cli', version: '0.2.0', type: 'module' }));
+			write(join(cli, 'package.json'), JSON.stringify({ name: '@amxts/cli', version: '99.0.0', type: 'module' }));
 			write(join(cli, 'bin', 'amxts.mjs'), 'import { writeFileSync } from "node:fs";\nwriteFileSync("handed.json", JSON.stringify({ args: process.argv.slice(2), from: JSON.parse(process.env.AMXTS_UPGRADE_FROM) }));\n');
-			const registry = { latest: async () => '0.2.0', has: async () => true };
-			const outcome = await upgrade({ server: false }, { dir, registry, install: async () => coreVersion(dir, '0.2.0') });
+			const registry = registryOf({ '@amxts/core': [{ version: NEXT_CORE }] });
+			const outcome = await upgrade({ server: false }, { dir, registry, install: async () => coreVersion(dir, NEXT_CORE) });
 			process.exitCode = 0;
 			expect(outcome).toBeNull();
-			expect(JSON.parse(readFileSync(join(dir, 'handed.json'), 'utf8'))).toEqual({ args: ['upgrade', '--to', '0.2.0', '--no-server'], from: { '@amxts/core': '0.1.0' } });
+			expect(JSON.parse(readFileSync(join(dir, 'handed.json'), 'utf8'))).toEqual({ args: ['upgrade', '--to', NEXT_CORE, '--no-server'], from: { '@amxts/core': CORE } });
 		});
 	});
 });
@@ -268,42 +307,42 @@ describe('the server', () => {
 test('the whole run, as a user runs it: packages, code, build, server and the summary', () => {
 	const dir = mkdtempSync(join(tmpdir(), 'amxts-upgrade-'));
 	try {
-		standInProject(dir, '0.1.0', CLI_API);
-		writeFileSync(join(dir, 'package.json'), '{ "name": "my-server", "devDependencies": { "@amxts/core": "^0.1.0" } }\n');
+		standInProject(dir, CORE, CLI_API);
+		writeFileSync(join(dir, 'package.json'), `{ "name": "my-server", "devDependencies": { "@amxts/core": "^${CORE}" } }\n`);
 		const game = join(serverOf(dir), '..', '..');
 		write(join(serverOf(dir), 'plugins.ini'), '');
 		write(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'), moduleOf('0.0.9'));
-		const release = releaseFolder(join(dir, 'release'), '0.1.0', { 'amxts_amxx.dll': moduleOf('0.1.0') });
+		const release = releaseFolder(join(dir, 'release'), CORE, { 'amxts_amxx.dll': moduleOf(CORE) });
 
-		expect(amxts(['build'], dir).out).toContain('▲ the server runs amxts 0.0.9, this project 0.1.0 - run amxts upgrade\n');
-		const dry = amxts(['upgrade', '--to', '0.1.0', '--dry-run'], dir, { AMXTS_RELEASE_URL: release });
+		expect(amxts(['build'], dir).out).toContain(`▲ the server runs amxts 0.0.9, this project ${CORE} - run amxts upgrade\n`);
+		const dry = amxts(['upgrade', '--to', CORE, '--dry-run'], dir, { AMXTS_RELEASE_URL: release });
 		expect(dry.out).toContain('task upgrade --report');
 		expect(dry.out).toContain('--dry-run\n');
 		expect(dry.out).not.toContain('task build');
 		expect(readFileSync(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'))).toEqual(moduleOf('0.0.9'));
 
-		const run = amxts(['upgrade', '--to', '0.1.0'], dir, { AMXTS_RELEASE_URL: release });
+		const run = amxts(['upgrade', '--to', CORE], dir, { AMXTS_RELEASE_URL: release });
 		expect(run.code).toBe(0);
 		const out = run.out.replace(/--report \S+/, '--report <file>').replace(/\\/g, '/').replaceAll(dir.replace(/\\/g, '/'), '<project>');
 		expect(out).toBe([
-			'amxts 0.1.0 · upgrade',
-			'◇ Packages: amxts 0.1.0',
-			'i @amxts/core  ^0.1.0 (already)',
+			`amxts ${VERSION} · upgrade`,
+			`◇ Packages: amxts ${CORE}`,
+			`i @amxts/core  ^${CORE} (already)`,
 			'◇ Code',
 			'task upgrade --report <file>',
 			'◇ Build',
 			'task prepare --quiet',
 			'task build',
 			'◇ Server: <project>/hlds/cstrike (windows)',
-			'✔ amxts_amxx.dll 0.0.9 → 0.1.0 (the old one: amxts_amxx.dll.0.0.9)',
+			`✔ amxts_amxx.dll 0.0.9 → ${CORE} (the old one: amxts_amxx.dll.0.0.9)`,
 			'',
-			'Upgraded to amxts 0.1.0',
-			'  @amxts/core  0.1.0 (already)',
+			`Upgraded to amxts ${CORE}`,
+			`  @amxts/core  ${CORE} (already)`,
 			'  ✔ rewritten: plugins/hello.ts',
 			'  ▲ to check by hand:',
 			'      plugins/hello.ts:4  reads the words after the command\'s name',
 			'  ✔ built',
-			'  ✔ server: amxts_amxx.dll 0.0.9 → 0.1.0 - restart the server to load it',
+			`  ✔ server: amxts_amxx.dll 0.0.9 → ${CORE} - restart the server to load it`,
 			'',
 		].join('\n'));
 		expect(amxts(['build'], dir).out).not.toContain('the server runs');

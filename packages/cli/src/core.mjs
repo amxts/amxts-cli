@@ -86,14 +86,38 @@ function parts(version) {
 	return String(version).split('-')[0].split('.').map(each => Number.parseInt(each, 10) || 0);
 }
 
-/** Whether a version is in a caret range: `^0.1.0` takes 0.1.x from 0.1.0 up. */
+/** Two versions compared: below 0 when `a` comes first. */
+export function compareVersions(a, b) {
+	const [x, y] = [parts(a), parts(b)];
+	return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+}
+
+/**
+ * One comparator of a range as a test of a version: `^0.2.0` (0.2.x from
+ * 0.2.0 up - below 1.0 the minor is the breaking number), `~0.2.1`, `>=0.2.0`,
+ * `<1.0.0`, `0.2.0`, `*`.
+ */
+function comparator(text) {
+	const [, op = '=', want = '*'] = /^([<>]=?|[\^~=])?v?(.*)$/.exec(text);
+	if (/^[*x]?$/i.test(want)) return () => true;
+	const [major, minor, patch] = parts(want);
+	const upper = op === '^' ? (major ? `${major + 1}.0.0` : minor ? `0.${minor + 1}.0` : `0.0.${patch + 1}`) : `${major}.${minor + 1}.0`;
+	const within = version => compareVersions(version, want) >= 0 && compareVersions(version, upper) < 0;
+	const tests = {
+		'^': within,
+		'~': within,
+		'>=': version => compareVersions(version, want) >= 0,
+		'<=': version => compareVersions(version, want) <= 0,
+		'>': version => compareVersions(version, want) > 0,
+		'<': version => compareVersions(version, want) < 0,
+		'=': version => compareVersions(version, want) === 0,
+	};
+	return tests[op];
+}
+
+/** Whether a range takes a version, as npm reads one: `^0.2.0`, `>=0.2.0 <0.4.0`, `^0.2.0 || ^0.3.0`. */
 export function satisfies(version, range = CORE_RANGE) {
-	const [major, minor, patch] = parts(version);
-	const [wantMajor, wantMinor, wantPatch] = parts(range.replace(/^\^/, ''));
-	if (major !== wantMajor) return false;
-	// Below 1.0 the minor is the breaking number: ^0.1.0 does not take 0.2.0.
-	if (major === 0 && minor !== wantMinor) return false;
-	return minor > wantMinor || (minor === wantMinor && patch >= wantPatch);
+	return range.split('||').some(alternative => alternative.trim().split(/\s+/).every(each => comparator(each)(version)));
 }
 
 /** Whether a version is past a caret range, not below it: its major, or below 1.0 its minor, is the higher. */

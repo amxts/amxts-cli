@@ -130,9 +130,9 @@ function putBack(dir, saved) {
 	}
 }
 
-/** A command line as it is shown: arguments with spaces quoted. */
+/** A command line as it is shown, and as Windows' shell runs it: arguments with spaces, or with what that shell reads (`^0.2.0`), quoted. */
 export function commandLine(argv) {
-	return argv.map(arg => (/\s/.test(arg) ? `"${arg}"` : arg)).join(' ');
+	return argv.map(arg => (/[\s^&|<>]/.test(arg) ? `"${arg}"` : arg)).join(' ');
 }
 
 /**
@@ -140,7 +140,7 @@ export function commandLine(argv) {
  * .cmd files; `quiet` collects the output instead of showing it, for a
  * spinner, and hands it back for an error.
  *
- * @returns {Promise<{ code: number, output: string }>} its exit code, and its output when quiet
+ * @returns {Promise<{ code: number, output: string, stdout: string }>} its exit code, and its output when quiet - all of it, and what went to stdout alone
  */
 export function run(argv, { cwd = process.cwd(), quiet = false, env } = {}) {
 	return new Promise((done) => {
@@ -154,13 +154,15 @@ export function run(argv, { cwd = process.cwd(), quiet = false, env } = {}) {
 			windowsHide: true,
 		});
 		let output = '';
+		let stdout = '';
 		child.stdout?.on('data', (chunk) => {
 			output += chunk;
+			stdout += chunk;
 		});
 		child.stderr?.on('data', (chunk) => {
 			output += chunk;
 		});
-		child.on('error', error => done({ code: 127, output: `${output}${error.message}` }));
-		child.on('close', code => done({ code: code ?? 1, output }));
+		child.on('error', error => done({ code: 127, output: `${output}${error.message}`, stdout }));
+		child.on('close', code => done({ code: code ?? 1, output, stdout }));
 	});
 }
