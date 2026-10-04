@@ -24,7 +24,7 @@ depends on. Installed globally, the command works the same way.
 The command never imports a path inside the core. It finds the core the
 project installed - `@amxts/core/package.json` resolved from the folder it
 runs in, as Node resolves it (`src/core.mjs`, `projectCore()`) - checks its
-version against `CORE_RANGE` (`^0.1.0`), imports `@amxts/core/cli-api` and
+version against `CORE_RANGE` (`^0.2.0`), imports `@amxts/core/cli-api` and
 checks `cliApi` against `CLI_API`. A core outside the range or with another
 `cliApi` is a `CliError` that says what to do: an older core is moved
 with `amxts upgrade`, a newer one needs a newer command. The contract, from the core's side, is
@@ -86,7 +86,8 @@ A project needs no Bun of its own.
 | `src/module.mjs`, `src/info.mjs` | `module add` (the install, the config, then `prepare()`, so the editor config names the module) / `list`, `info` |
 | `src/server.mjs` | the server a project deploys to, `AMXTS_SERVER` in `.env`: the question `init` asks, and `dev` and `build --deploy` ask when it is not set - in a terminal, not in CI |
 | `src/system.mjs` | the server's system for `init`: `hlds_linux` or `hlds.exe` beside its game folder |
-| `src/upgrade.mjs` | `upgrade`: the `@amxts/` packages moved in the project's style and installed, the core's `upgrade` task, the build, the server step, the summary; a command of another release hands the rest to the project's new one (`AMXTS_UPGRADE_FROM`) |
+| `src/registry.mjs` | the versions that go together ([versions](#versions)): `npm view` through the registry npm is set to, `versionsFor()` - for a core, each package's newest version that works with it |
+| `src/upgrade.mjs` | `upgrade`: the core moved to its latest version or `--to`, every other `@amxts/` package to its newest for that core, each in the project's style, and installed; the core's `upgrade` task, the build, the server step, the summary; a command of another release hands the rest to the project's new one (`AMXTS_UPGRADE_FROM`) |
 | `src/server-update.mjs` | the server step: the release's manifest and files (a URL, or a folder in `AMXTS_RELEASE_URL`), the sha256 checked, a file in use found before anything changes, the old files kept, `amxts_host.amxx` out of `plugins.ini`; `serverMismatch()` for `dev` and `build` |
 
 ## Starters
@@ -199,6 +200,31 @@ linked module resolves its own imports from its real folder: its `testing/`
 needs `@amxts/core` in the module's own `node_modules`, as a module being
 developed has.
 
+## Versions
+
+Every package has a version of its own. The core and `wamrc` share one; the
+command and `create-amxts` have theirs, and the command drives the cores of
+its `CORE_RANGE`; a module versions by its own API and names the cores it
+works with as a range in its `peerDependencies` (`"@amxts/core": "^0.2.0"`),
+and another module the same way. So which versions go together is read off
+the registry (`src/registry.mjs`): for a core, each package's newest version
+whose range for `@amxts/core` takes it - for a package that names no core,
+the one the core's own range for it takes (the command, `wamrc`).
+
+- `upgrade` moves the core to its latest version or `--to`, and every other
+  `@amxts/` package to its newest version for that core; a package with none
+  stops it before anything changes.
+- `init` gives a module from the registry its newest version for the newest
+  core of `CORE_RANGE` - the core the project gets; offline it writes
+  `latest`, and the install says why.
+- `module add` installs a module from the registry at its newest version for
+  the project's core.
+
+`npm view` is asked once per package, all at once, for every version (`*`) or
+an exact one or a tag: a range on the command line would go through Windows'
+shell, which reads `^` and `>`; `commandLine()` quotes such an argument for
+the same reason.
+
 ## Working here
 
 ```sh
@@ -219,10 +245,16 @@ specs, templates, `create-amxts`, `init` from flags with and without modules
 and the lint, `init --module`, the target from a server's includes and
 `--target`. `test/includes.test.ts`: the server's own includes, ReAPI's
 fetched from a release on this machine, `hlds`, a failed or changed
-download, and the `.zip` reader. `test/core.test.ts`: the version range, and a
+download, and the `.zip` reader. `test/core.test.ts`: the version range and a
+module's ranges, and a
 project with a stand-in core (`standInProject()` in `test/helpers.ts`) -
 none, older, newer, without the cli-api, with another `cliApi`, and one whose
-task runs. `test/project.test.ts`: `module add` preparing after it lists the
+task runs. The stand-in cores take their versions from `CORE_RANGE`
+(`CORE`, `NEXT_CORE` in `test/helpers.ts`), so a release's version changes no
+test. `test/upgrade.test.ts`: the specs moved in the project's style, each
+package's version for a core from a stand-in registry, every package
+manager, a core or a module the registry does not have, a dry run, the hand
+over to a newer command, the server step and the whole run. `test/project.test.ts`: `module add` preparing after it lists the
 module; `dev` asking for the server in a terminal (`amxtsInTerminal()`, whose
 `test/terminal.mjs` makes the input a terminal) and keeping it in `.env`, and
 not asking elsewhere. `test/system.test.ts`: the
