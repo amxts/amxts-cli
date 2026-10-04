@@ -69,4 +69,4 @@ Update the command with the package manager the project uses - `npm install @amx
 
 ### ❤️ Contributors
 
-- Ernest Manukyan
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
