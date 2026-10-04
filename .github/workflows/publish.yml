@@ -1,6 +1,6 @@
-# A release of amxts-cli: on its tag v<version>, its GitHub Release with the
+# A release of amxts-cli: on its tag v<its own version>, its GitHub Release with the
 # version's section of CHANGELOG.md as the notes, then @amxts/cli and create-amxts on npm -
-# once the core of that version is there, so all the tags of a release can be
+# once the newest release of the core is there, so all the tags of a release can be
 # pushed at once. Run by hand with the tag, it does the same; what is
 # published already is left as it is. Both steps are amxts/amxts's
 # workflows (release-notes.yml, npm.yml).
