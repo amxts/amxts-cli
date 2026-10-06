@@ -56,7 +56,8 @@
 - **На Bun**: задачи ядра `prepare`, `build`, `check` и `upgrade` — `runTask()`
   запускает их и передаёт `--debug` дальше как `AMXTS_DEBUG=1`. `typecheck`
   запускает задачу `prepare`, затем `tsc` под Node. `test` сам запускает
-  `bun test` с переданными аргументами.
+  Vitest проекта (`vitest run`, на Node), когда в проекте установлен `vitest`,
+  иначе `bun test`, с переданными аргументами.
 
 Bun — тот, что установлен с ядром: `@amxts/core` зависит от пакета `bun`, и
 `bunBinary()` из его cli-api находит бинарник — в платформенном пакете
