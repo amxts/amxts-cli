@@ -4,7 +4,7 @@
 		"lib": ["ES2022"],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"types": ["bun"],
+		"types": ["{{test.types}}"],
 		"strict": true,
 		"noEmit": true,
 		"skipLibCheck": true

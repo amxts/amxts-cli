@@ -1,6 +1,6 @@
 // How the command finds the project's core and checks it can drive it: the
 // version range, and the `@amxts/core/cli-api` contract.
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // @ts-ignore - bun:test types not available during type checking
 import { describe, expect, test } from 'bun:test';
@@ -61,6 +61,17 @@ describe('the project\'s core', () => {
 			const run = amxts(['build'], dir);
 			expect(run.out).toBe(`amxts ${CORE} · build\ntask prepare --quiet\ntask build\n`);
 			expect(amxts(['prepare'], dir).out).toBe('task prepare\n');
+		});
+	});
+
+	test('test runs the project\'s Vitest when it has one', () => {
+		inTemp((dir) => {
+			standInProject(dir, CORE, CLI_API);
+			mkdirSync(join(dir, 'node_modules', 'vitest'));
+			writeFileSync(join(dir, 'node_modules', 'vitest', 'vitest.mjs'), 'console.log("vitest", ...process.argv.slice(2));\n');
+			const run = amxts(['test', 'hello'], dir);
+			expect(run.out).toBe('vitest run hello\n');
+			expect(run.code).toBe(0);
 		});
 	});
 

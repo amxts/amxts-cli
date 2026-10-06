@@ -55,8 +55,9 @@ pnpm and yarn start it with Node, and nothing in it needs a build step.
   work without Bun.
 - **On Bun**: the core's `prepare`, `build`, `check` and `upgrade` tasks - `runTask()`
   runs them and passes `--debug` on as `AMXTS_DEBUG=1`. `typecheck` runs the
-  `prepare` task, then `tsc` under Node. `test` runs `bun test` itself, with
-  the arguments it was given.
+  `prepare` task, then `tsc` under Node. `test` runs the project's Vitest
+  (`vitest run`, on Node) when the project has `vitest` installed, else
+  `bun test`, with the arguments it was given.
 
 The Bun is the one installed with the core: `@amxts/core` depends on the
 `bun` package, and its cli-api's `bunBinary()` finds the binary - in the

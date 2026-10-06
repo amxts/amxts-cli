@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.2.0...v0.2.1)
+
+### Summary
+
+A project's tests run without Bun: a project or module made with npm, pnpm or Yarn tests on Node with Vitest, and `amxts test` runs the project's Vitest when it has one. With Bun nothing changes. It goes with `@amxts/core` 0.2.3, whose fake server loads under Node.
+
+### 🩹 Fixes
+
+- **create:** Tests on Vitest without Bun - a project or module made with npm, pnpm or Yarn tests on Node with Vitest; with Bun nothing changes ([463c8f9](https://github.com/amxts/amxts-cli/commit/463c8f9))
+- **test:** The project's Vitest when it has one - `amxts test` runs `vitest run` in a project with vitest installed, else `bun test` ([1184a2e](https://github.com/amxts/amxts-cli/commit/1184a2e))
+
+### 📖 Documentation
+
+- **readme:** The hint for an older core ([b795531](https://github.com/amxts/amxts-cli/commit/b795531))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.2.0
 
 [compare changes](https://github.com/amxts/amxts-cli/compare/v0.1.0...v0.2.0)

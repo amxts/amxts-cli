@@ -1,11 +1,21 @@
+// #if bun
 import { expect, setDefaultTimeout, test } from "bun:test";
+// #endif
+// #if !bun
+import { expect, test, vi } from "vitest";
+// #endif
 import { setup } from "@amxts/core/test-utils";
 // #if menu-core
 import { menusOf } from "@amxts/menu-core/testing";
 // #endif
 
 // The first run compiles the plugins; the next ones take them from the cache.
+// #if bun
 setDefaultTimeout(120_000);
+// #endif
+// #if !bun
+vi.setConfig({ testTimeout: 120_000 });
+// #endif
 
 test("a player who joins is greeted", async () => {
 	const server = await setup();
