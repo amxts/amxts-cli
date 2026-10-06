@@ -1,7 +1,7 @@
 {
 	"name": "create-amxts",
 	"type": "module",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Create an amxts project: npm create amxts@latest",
 	"author": {
 		"name": "kukson777",
@@ -31,7 +31,7 @@
 		"node": ">=20.12"
 	},
 	"dependencies": {
-		"@amxts/cli": "^0.2.0"
+		"@amxts/cli": "^0.2.1"
 	},
 	"publishConfig": {
 		"access": "public"
