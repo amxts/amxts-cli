@@ -1,4 +1,9 @@
+// #if bun
 import { describe, expect, test } from "bun:test";
+// #endif
+// #if !bun
+import { describe, expect, test } from "vitest";
+// #endif
 import { setup } from "@amxts/core/test-utils";
 
 // The first test compiles the plugins; the next runs take them from the cache.

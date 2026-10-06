@@ -202,9 +202,16 @@ describe('the command line', () => {
 			expect(pkg.name).toBe('my-server');
 			expect(Object.keys(pkg.scripts)).toEqual(['postinstall', 'dev', 'build', 'typecheck', 'test', 'lint', 'lint:fix']);
 			// menu-core brings config-core: both installed, both listed.
-			expect(Object.keys(pkg.devDependencies)).toEqual(['@amxts/config-core', '@amxts/core', '@amxts/menu-core', '@types/bun', 'knip', ...Object.keys(LINT_DEPENDENCIES)].sort((a, b) => a.localeCompare(b)));
+			expect(Object.keys(pkg.devDependencies)).toEqual(['@amxts/config-core', '@amxts/core', '@amxts/menu-core', '@types/node', 'knip', 'vitest', ...Object.keys(LINT_DEPENDENCIES)].sort((a, b) => a.localeCompare(b)));
 			// From a checkout the core and the modules are linked from this machine.
 			expect(pkg.devDependencies['@amxts/core']).toStartWith('file:');
+			// Not Bun: the tests run on Node, with Vitest.
+			expect(pkg.scripts.test).toBe('vitest run');
+			const tests = readFileSync(join(root, 'test', 'hello.test.ts'), 'utf8');
+			expect(tests).toContain('import { expect, test, vi } from "vitest";');
+			expect(tests).not.toContain('bun:test');
+			expect(tests).not.toContain('#if');
+			expect(JSON.parse(readFileSync(join(root, 'test', 'tsconfig.json'), 'utf8')).compilerOptions.types).toEqual(['node']);
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('\tmodules: [\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core\n\t],\n');
 			// No includes at that server: the default target, ReHLDS with ReAPI.
 			expect(readFileSync(join(root, 'amxts.config.ts'), 'utf8')).toContain('target: "rehlds",');
@@ -235,7 +242,7 @@ describe('the command line', () => {
 			const root = join(dir, 'plain');
 			const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 			expect(pkg.scripts.lint).toBeUndefined();
-			expect(pkg.devDependencies).toEqual({ '@amxts/core': CORE_RANGE, '@types/bun': '^1.4.2', 'knip': '^6.39.0' });
+			expect(pkg.devDependencies).toEqual({ '@amxts/core': CORE_RANGE, '@types/node': '^24.0.0', 'knip': '^6.39.0', 'vitest': '^5.0.3' });
 			const plugin = readFileSync(join(root, 'plugins', 'hello.ts'), 'utf8');
 			expect(plugin).not.toContain('@amxts/menu-core');
 			// The core's own menu, no module's.
@@ -251,6 +258,23 @@ describe('the command line', () => {
 			// pnpm is told bun's install script is not needed, so it does not stop the install.
 			expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toContain('allowBuilds:');
 			expect(run.out).toContain('pnpm install');
+		});
+	});
+
+	test('with Bun as the package manager, a project and a module test on bun test', () => {
+		inTemp((dir) => {
+			expect(amxts(['init', 'my-server', '--pm', 'bun', '--modules', '', '--no-lint', '--no-git', '--no-install', '--no-local', '--yes'], dir).code).toBe(0);
+			expect(amxts(['init', '--module', 'greeter', '--pm', 'bun', '--no-local'], dir).code).toBe(0);
+			for (const [root, file] of [['my-server', 'hello.test.ts'], ['greeter', 'greeter.test.ts']]) {
+				const pkg = JSON.parse(readFileSync(join(dir, root, 'package.json'), 'utf8'));
+				expect(pkg.scripts.test).toBe('amxts test');
+				expect(pkg.devDependencies['@types/bun']).toBe('^1.4.2');
+				expect(pkg.devDependencies.vitest).toBeUndefined();
+				const tests = readFileSync(join(dir, root, 'test', file), 'utf8');
+				expect(tests).toContain('from "bun:test";');
+				expect(tests).not.toContain('vitest');
+				expect(JSON.parse(readFileSync(join(dir, root, 'test', 'tsconfig.json'), 'utf8')).compilerOptions.types).toEqual(['bun']);
+			}
 		});
 	});
 
@@ -311,6 +335,8 @@ describe('the command line', () => {
 			expect(readFileSync(join(root, 'playground', 'plugins', 'welcome.ts'), 'utf8')).toContain('server.addCommand("/hello", ({ player }) => killFeed.greet(player));');
 			expect(JSON.parse(readFileSync(join(root, 'playground', 'package.json'), 'utf8')).devDependencies).toEqual({ '@you/kill-feed': 'file:..' });
 			for (const file of ['LICENSE', 'README.md', 'README.ru.md', 'test/kill-feed.test.ts', '.gitignore', '.oxlintrc.json']) expect(existsSync(join(root, file))).toBe(true);
+			expect(pkg.scripts.test).toBe('vitest run');
+			expect(readFileSync(join(root, 'test', 'kill-feed.test.ts'), 'utf8')).toContain('import { describe, expect, test } from "vitest";');
 		});
 	});
 });

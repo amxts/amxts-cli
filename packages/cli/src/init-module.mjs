@@ -17,7 +17,7 @@ import process from 'node:process';
 import { shortName, specFor } from './catalog.mjs';
 import { CLI_DIR, CORE_RANGE, FROM_SOURCE, needLocalCore } from './core.mjs';
 import { LINT_DEPENDENCIES, LINT_SCRIPTS } from './lint.mjs';
-import { detectPackageManager, execAmxts, installArgs, runScript } from './pm.mjs';
+import { detectPackageManager, execAmxts, installArgs, runScript, testRunner } from './pm.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
 import { c, CliError, log } from './ui.mjs';
 
@@ -57,9 +57,11 @@ export async function initModule(options) {
 	}
 
 	const pm = options.pm ?? detectPackageManager();
+	const runner = testRunner(pm);
+	values['test.types'] = runner.types;
 	const localCore = (options.local ?? FROM_SOURCE) ? await needLocalCore() : null;
 
-	const written = copyTemplate(join(CLI_DIR, 'templates', 'module'), dir, values, { natives }, path => path === 'src/natives.ts' && !natives);
+	const written = copyTemplate(join(CLI_DIR, 'templates', 'module'), dir, values, { natives, bun: pm === 'bun' }, path => path === 'src/natives.ts' && !natives);
 
 	const amxts = { module: 'src/index.ts' };
 	if (natives) Object.assign(amxts, { natives: 'src/natives.ts', include: `include/${values.include}.inc` });
@@ -78,15 +80,15 @@ export async function initModule(options) {
 		scripts: {
 			build: 'amxts build',
 			check: 'amxts check',
-			test: 'amxts test',
+			test: runner.script,
 			...LINT_SCRIPTS,
 		},
 		peerDependencies: { '@amxts/core': CORE_RANGE },
 		devDependencies: Object.fromEntries(Object.entries({
 			...(localCore ? { '@amxts/core': specFor({ name: '@amxts/core', dir: localCore.dir }, dir, pm) } : {}),
 			...LINT_DEPENDENCIES,
-			'@types/bun': '^1.4.2',
-			'typescript': '^6.0.3',
+			...runner.devDependencies,
+			typescript: '^6.0.3',
 		}).sort(([a], [b]) => a.localeCompare(b))),
 	}, null, '\t')}\n`);
 	written.push('package.json');

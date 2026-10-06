@@ -18,7 +18,7 @@ import { modulesList } from './config.mjs';
 import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLocalCore, readJson, VERSION } from './core.mjs';
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
-import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, versionOf } from './pm.mjs';
+import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, testRunner, versionOf } from './pm.mjs';
 import { npmRegistry, versionsFor } from './registry.mjs';
 import { askServer, canAsk, missingServer, serverEnv, serverFolder } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
@@ -32,8 +32,7 @@ import { c, CliError } from './ui.mjs';
  * from this machine's folders (--local) are not called unused.
  */
 const TOOLS = {
-	'@types/bun': '^1.4.2',
-	'knip': '^6.39.0',
+	knip: '^6.39.0',
 };
 
 const DEFAULT_DIR = 'my-server';
@@ -187,6 +186,7 @@ export async function initProject(options) {
 	// The files.
 	const amxts = execAmxts(pm);
 	const install = installArgs(pm).join(' ');
+	const runner = testRunner(pm);
 	const values = {
 		'name': packageName(root),
 		'author': gitAuthor(),
@@ -199,8 +199,9 @@ export async function initProject(options) {
 		'run.typecheck': runScript(pm, 'typecheck'),
 		'run.test': runScript(pm, 'test'),
 		'run.lint': runScript(pm, 'lint'),
+		'test.types': runner.types,
 	};
-	const flags = { lint, ...Object.fromEntries(installed.map(module => [shortName(module.name), true])) };
+	const flags = { lint, bun: pm === 'bun', ...Object.fromEntries(installed.map(module => [shortName(module.name), true])) };
 	const written = copyTemplate(join(CLI_DIR, 'templates', 'project'), root, values, flags, path => LINT_FILES.includes(path) && !lint);
 
 	const core = { name: '@amxts/core', dir: localCore?.dir ?? null };
@@ -209,6 +210,7 @@ export async function initProject(options) {
 		[core.name]: specFor(core, root, pm, CORE_RANGE),
 		...Object.fromEntries(installed.map(module => [module.name, specFor(module, root, pm, versions[module.name] ? `^${versions[module.name]}` : 'latest')])),
 		...TOOLS,
+		...runner.devDependencies,
 		...(lint ? LINT_DEPENDENCIES : {}),
 	};
 	writeFile(join(root, 'package.json'), `${JSON.stringify({
@@ -221,7 +223,7 @@ export async function initProject(options) {
 			dev: 'amxts dev',
 			build: 'amxts build',
 			typecheck: 'amxts typecheck',
-			test: 'amxts test',
+			test: runner.script,
 			...(lint ? LINT_SCRIPTS : {}),
 		},
 		devDependencies: Object.fromEntries(Object.entries(devDependencies).sort(([a], [b]) => a.localeCompare(b))),

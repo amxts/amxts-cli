@@ -76,6 +76,17 @@ export function execAmxts(pm) {
 }
 
 /**
+ * What a new project's or module's tests run on: `bun test` with Bun as the
+ * package manager, Vitest on Node with any other. `types` is the test
+ * folder's tsconfig `types`.
+ */
+export function testRunner(pm) {
+	return pm === 'bun'
+		? { script: 'amxts test', types: 'bun', devDependencies: { '@types/bun': '^1.4.2' } }
+		: { script: 'vitest run', types: 'node', devDependencies: { '@types/node': '^24.0.0', 'vitest': '^5.0.3' } };
+}
+
+/**
  * The folders a project's package.json takes packages from - `link:` and
  * `file:` specs: the core and the modules of this machine (--local).
  * @param {string} projectDir
