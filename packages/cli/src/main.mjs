@@ -105,6 +105,36 @@ export const COMMANDS = {
 			else runTaskOrExit(core, 'build', ['--deploy', '--watch', ...osArgs(values)]);
 		},
 	},
+	rcon: {
+		description: 'Send a command to the project\'s server over rcon and print its answer',
+		usage: 'amxts rcon <command> [--json]',
+		flags: {
+			json: { type: 'boolean', description: 'Print { server, command, reply } - or { server, command, error } - as JSON' },
+		},
+		examples: ['amxts rcon amxts_plugins', 'amxts rcon status --json', 'amxts rcon changelevel de_dust2'],
+		async run({ values, positionals }) {
+			const command = positionals.join(' ').trim();
+			if (!command) throw new CliError('amxts rcon: which command?', 'amxts rcon amxts_plugins');
+			const { rcon, rconTarget } = await import('./rcon.mjs');
+			const target = rconTarget(needProject());
+			if (!target) throw new CliError('AMXTS_SERVER is not set: rcon reaches the server it names', 'Set it in .env beside package.json: AMXTS_SERVER=D:/hlds/cstrike/addons/amxts');
+			if (!target.password) throw new CliError(`rcon is not set up: no rcon_password in ${target.cfg}`, 'Add a line  rcon_password "something"  to it and restart the server.');
+			const server = `${target.host}:${target.port}`;
+			const answer = await rcon(target, command);
+			if (values.json) {
+				console.log(JSON.stringify({ server, command, ...answer }));
+				if ('error' in answer) process.exitCode = 1;
+				return;
+			}
+			if ('reply' in answer) {
+				process.stdout.write(answer.reply.endsWith('\n') || !answer.reply ? answer.reply : `${answer.reply}\n`);
+				return;
+			}
+			throw answer.error === 'no answer'
+				? new CliError(`The server at ${server} does not answer`, 'Is it running? AMXTS_PORT in .env names a port other than 27015.')
+				: new CliError(`The server refused the rcon_password of ${target.cfg}`, 'The server reads it as it starts: restart it after a change.');
+		},
+	},
 	build: {
 		description: 'Build the plugins and the modules into outDir (dist/), with plugins.ini',
 		usage: 'amxts build [--deploy] [--watch] [--os windows|linux]',
