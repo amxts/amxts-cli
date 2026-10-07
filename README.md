@@ -36,7 +36,11 @@ builds, deploys, type-checks and tests. This repository has two packages:
   project is for - ReHLDS + ReGameDLL + ReAPI or plain HLDS - and fetches
   ReAPI's includes when it is the first.
 - **Save and play.** `amxts dev` builds, deploys to the server and does it
-  again on every save.
+  again on every save. In a terminal a panel stays under its lines: the
+  server's map, players and FPS over rcon, each plugin's state, the last
+  rebuild, and keys to rebuild, change the map or restart the round.
+- **rcon from the project.** `amxts rcon <command>` runs a command on the
+  project's server and prints the answer (`--json` for scripts and agents).
 - **Errors you can act on.** One line and a hint; a typo gets "did you mean";
   `--debug` adds the stack.
 - **A module starter.** `amxts init --module` writes a working module package
@@ -60,6 +64,8 @@ Then, in the project:
 ```sh
 npx amxts dev              # build, deploy to the server in AMXTS_SERVER, again on every save
 npx amxts dev --docker     # build for the Docker server that mounts the project, again on every save
+npx amxts dev --no-tui     # the build's lines alone, without the panel
+npx amxts rcon amxts_plugins   # a command on the server, over rcon
 npx amxts build --deploy   # build once and deploy
 npx amxts build --os linux # for a Linux server, when AMXTS_SERVER does not show it
 npx amxts build --watch    # build again on every save, without deploying

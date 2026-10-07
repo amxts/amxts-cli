@@ -73,7 +73,7 @@ A project needs no Bun of its own.
 | --- | --- |
 | `src/main.mjs` | the command table, help, "did you mean", the one `catch` |
 | `src/args.mjs` | `--flag value`, `--flag=value`, `--no-flag`, aliases; an unknown flag names the closest one |
-| `src/ui.mjs` | colors (off without a TTY or with `NO_COLOR`, on with `FORCE_COLOR`), `log`, `CliError(message, hint)`, `report()`, `closest()` (edit distance with swaps) |
+| `src/ui.mjs` | colors (off without a TTY or with `NO_COLOR`, on with `FORCE_COLOR`), `log`, `CliError(message, hint)`, `report()`, `closest()` (edit distance with swaps); the banner and the logo in braille dots (`LOGO`, `logoLines()`, `logoGlyphs()`, `logoPaint()`), `badge()`, `vivid()`, links (`link()`, `editorLink()`) |
 | `src/pm.mjs` | the package manager: `npm_config_user_agent`, lockfiles, `packageManager`; each one's install / add / run / exec spelling |
 | `src/core.mjs` | the command's version, the project's core and the one on this machine, the version and `cliApi` checks, Bun, running a task |
 | `src/catalog.mjs` | the amxts catalog (`loadCatalog()`), names in it, `--local` folders, `file:` / `link:` specs; `withRequired()` / `configEntries()`: a chosen module, then what it requires (and that, in turn), each with the modules that need it |
@@ -89,7 +89,59 @@ A project needs no Bun of its own.
 | `src/system.mjs` | the server's system for `init`: `hlds_linux` or `hlds.exe` beside its game folder |
 | `src/registry.mjs` | the versions that go together ([versions](#versions)): `npm view` through the registry npm is set to, `versionsFor()` - for a core, each package's newest version that works with it |
 | `src/upgrade.mjs` | `upgrade`: the core moved to its latest version or `--to`, every other `@amxts/` package to its newest for that core, each in the project's style, and installed; the core's `upgrade` task, the build, the server step, the summary; a command of another release hands the rest to the project's new one (`AMXTS_UPGRADE_FROM`) |
+| `src/dev-panel.mjs` | the `dev` panel ([The dev panel](#the-dev-panel)): `wantsPanel()`, `panelLines()`, the keys |
+| `src/dev-feed.mjs` | what the panel knows of the build, read off the core's lines - the one place that reads them |
+| `src/rcon.mjs` | rcon over UDP: `packet()`, `replyText()`, `rcon()`, the project's server (`rconTarget()`: `127.0.0.1`, `AMXTS_PORT`, `rcon_password` of its `server.cfg`), and what `status`, `stats`, `amxts_plugins` and `maps *` say |
+| `src/lock.mjs` | one `dev` per project: `.amxts/dev.lock`, `--takeover` |
+| `src/update-check.mjs` | the line about a newer core: read from `~/.cache/amxts/update.json`, written by a check in a process of its own once a day |
 | `src/server-update.mjs` | the server step: the release's manifest and files (a URL, or a folder in `AMXTS_RELEASE_URL`), the sha256 checked, a file in use found before anything changes, the old files kept, `amxts_host.amxx` out of `plugins.ini`; `serverMismatch()` for `dev` and `build` |
+
+## The dev panel
+
+`dev` in a terminal (stdin and stdout a TTY, not CI, the window at least 60x16,
+no `--no-tui` or `AMXTS_TUI=plain`) runs the core's build with its output piped
+(`startTask()`, `FORCE_COLOR` so its colours stay) and draws a panel on the
+window's last rows: the logo with a light running across it, the server, the
+plugins, the last rebuild, the state and the keys. The rows above are the
+terminal's scrolling region (`ESC[1;<n>r`), where the build's lines go; the
+log's place is kept with `ESC 7` / `ESC 8`, and the panel is written by row
+numbers, ten times a second. The panel is always as tall: one that changed its
+height moved the log in Windows' terminals, so `?`, `p` and `e` open their view
+in the panel's place. Anywhere else the build's lines go to the terminal as
+they are.
+
+- **What the build did** is read off its lines by `src/dev-feed.mjs` alone -
+  the header, `◇ compiling <name> <i>/<n>`, `✔ <name> · <time>`, an `✖` error
+  and its lines, the deploy's line - so a structured feed from the core would
+  replace that one file. The header and `watching` are the panel's to say and
+  stay out of the log; `l` prints the build's own lines, what compiled too.
+- **The bar** is one per build and never goes back: before a compile it fills
+  by the time the last whole build took, a compile fills the rest by the
+  plugins done and the time the last compile took, short of done until the
+  core says so (`buildProgress()`).
+- **An error** is a block (`errorBlock()`): the message in TypeScript's words
+  (`~lib/string/String`, `f64` and `bool` read as `string`, `number`,
+  `boolean` until the core says them so), the place as a link (OSC 8) to the
+  editor - Orca's own `file://…:line:col` in Orca, else `vscode://` or
+  `cursor://` - and the source around it from the project's file, highlighted.
+- **The server** is asked over rcon every 10 seconds and after each rebuild:
+  `status` and `stats` (map, players, FPS), and `amxts_plugins` while `p` is
+  open; every half a second while `m` changes the map, till `status` says the
+  new one. No `rcon_password` in its `server.cfg` is said on the server line.
+- **Keys** come from `node:readline`'s keypress events in raw mode, Esc told
+  apart after 50 ms; a letter of the Russian layout is the key it sits on. A
+  paste is no keys: the terminal brackets it (`ESC[?2004h`), and one that does
+  not sends it in one piece of several characters. `r` starts the build over
+  once the one running is done, `m` offers the maps of `maps *`, `R` sends
+  `sv_restart 1`, `o` opens the docs with `rundll32 url.dll,FileProtocolHandler`
+  on Windows, `open` on macOS and `xdg-open` elsewhere - no shell. `q` clears
+  the window and leaves one line.
+- **One dev per project.** `.amxts/dev.lock` holds the pid, the start and the
+  script of the dev that runs. A second one stops with where the first runs;
+  `--takeover` stops the first (`taskkill /T` on Windows, `SIGTERM` elsewhere,
+  which `dev` passes to its build) once its command line, read just before,
+  still runs that script. A lock of a process that is gone, or is another
+  program now, is taken quietly.
 
 ## Starters
 
@@ -258,7 +310,11 @@ manager, a core or a module the registry does not have, a dry run, the hand
 over to a newer command, the server step and the whole run. `test/project.test.ts`: `module add` preparing after it lists the
 module; `dev` asking for the server in a terminal (`amxtsInTerminal()`, whose
 `test/terminal.mjs` makes the input a terminal) and keeping it in `.env`, and
-not asking elsewhere. `test/system.test.ts`: the
+not asking elsewhere. `test/dev.test.ts`: the banner's colour and drawing,
+the lock (a second dev refused, `--takeover`, a stale lock), rcon against
+`test/fake-server.mjs` (a stand-in server's rcon, also runnable alone on
+`AMXTS_PORT`), what the panel reads off recorded build output and draws, and
+the update line. `test/system.test.ts`: the
 server's system read off its folder, `--os` kept in `.env` by `init`, and
 `build` and `dev` refusing a system they do not know.
 
