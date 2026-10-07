@@ -15,6 +15,7 @@ import { bar, buildPart, buildProgress, errorBlock, fit, highlight, latin, panel
 import { lockPath, takeLock } from '../packages/cli/src/lock.mjs';
 import { cfgPassword, mapNames, packet, pluginStates, rcon, replyText, serverState } from '../packages/cli/src/rcon.mjs';
 import { badge, bannerText, editorLink, link, LOGO, logoGlyphs, logoLines, logoPaint } from '../packages/cli/src/ui.mjs';
+import { updateLine } from '../packages/cli/src/update-check.mjs';
 import { fakeServer, REPLIES } from './fake-server.mjs';
 import { amxts, CORE, inTemp, serverOf, standInProject } from './helpers';
 
@@ -370,5 +371,29 @@ describe('the panel', () => {
 		expect(wantsPanel({ env: { CI: 'true' }, stdout: terminal, stdin: terminal })).toBe(false);
 		expect(wantsPanel({ env: {}, stdout: { ...terminal, rows: 10 }, stdin: terminal })).toBe(false);
 		expect(wantsPanel({ env: {}, stdout: { isTTY: false }, stdin: terminal })).toBe(false);
+	});
+});
+
+describe('the update line', () => {
+	test('a newer core is said from the last check, which runs once a day, in a terminal only', () => {
+		inTemp((dir) => {
+			const file = join(dir, 'update.json');
+			const checks: string[] = [];
+			const check = (at: string) => checks.push(at);
+			const now = Date.parse('2026-10-07T12:00:00Z');
+			expect(updateLine('0.2.4', 'npm', { env: {}, tty: true, now, file, check })).toBeNull();
+			expect(checks).toEqual([file]);
+			writeFileSync(file, JSON.stringify({ checked: now, latest: '0.2.5' }));
+			expect(updateLine('0.2.4', 'npm', { env: {}, tty: true, now: now + 1000, file, check })).toBe('amxts 0.2.5 is out: npx amxts upgrade');
+			expect(updateLine('0.2.5', 'npm', { env: {}, tty: true, now, file, check })).toBeNull();
+			expect(checks).toHaveLength(1);
+			expect(updateLine('0.2.4', 'pnpm', { env: {}, tty: true, now: now + 25 * 60 * 60 * 1000, file, check })).toBe('amxts 0.2.5 is out: pnpm amxts upgrade');
+			expect(checks).toHaveLength(2);
+			for (const off of [{ env: { AMXTS_IGNORE_UPDATE_CHECK: '1' }, tty: true }, { env: {}, tty: false }, { env: { CI: 'true' }, tty: true }]) {
+				expect(updateLine('0.2.4', 'npm', { ...off, now: now + 99 * 60 * 60 * 1000, file, check })).toBeNull();
+			}
+			expect(checks).toHaveLength(2);
+			expect(existsSync(file)).toBe(true);
+		});
 	});
 });

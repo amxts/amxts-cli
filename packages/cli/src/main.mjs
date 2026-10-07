@@ -19,6 +19,7 @@ import { serverMismatch } from './server-update.mjs';
 import { ensureServer } from './server.mjs';
 import { SYSTEMS } from './system.mjs';
 import { banner, c, CliError, closest, log, report } from './ui.mjs';
+import { updateLine } from './update-check.mjs';
 
 /** --os, for the commands that compile: the plugins are built for that system. */
 const OS_FLAG = { type: 'string', value: Object.keys(SYSTEMS).join('|'), description: 'The server\'s system, when AMXTS_SERVER does not show it: the plugins are compiled for it' };
@@ -27,6 +28,12 @@ const OS_FLAG = { type: 'string', value: Object.keys(SYSTEMS).join('|'), descrip
 function warnServer(core, os) {
 	const line = serverMismatch(core, needProject(), os);
 	if (line) log.warn(line);
+}
+
+/** The line about a newer amxts, once a day at most (update-check.mjs). */
+function nudge(core) {
+	const line = updateLine(core.version, detectPackageManager());
+	if (line) log.info(line);
 }
 
 /** --os as the build task takes it. */
@@ -103,6 +110,7 @@ export const COMMANDS = {
 			const panel = wantsPanel({ tui: values.tui });
 			if (!panel) banner(core.version, 'dev', { logo: true });
 			takeLock(root, { takeover: values.takeover, say: log.info });
+			nudge(core);
 			// The container reads dist/ where it is: nothing to deploy, and AMXTS_SERVER is not asked.
 			if (!values.docker) {
 				await ensureServer(root, detectPackageManager());
@@ -169,6 +177,7 @@ export const COMMANDS = {
 			const os = osArgs(values);
 			const core = await projectCore();
 			banner(core.version, 'build');
+			nudge(core);
 			warnServer(core, os);
 			if (values.deploy) await ensureServer(needProject(), detectPackageManager());
 			await prepare(core, { quiet: true });
@@ -182,6 +191,7 @@ export const COMMANDS = {
 		async run() {
 			const core = await projectCore();
 			banner(core.version, 'typecheck');
+			nudge(core);
 			await prepare(core, { quiet: true });
 			if (runTask(core, 'typecheck') !== 0) {
 				throw new CliError('The plugins have type errors', 'They are listed above, file:line first.');
