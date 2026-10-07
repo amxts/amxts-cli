@@ -23,7 +23,7 @@ import { npmRegistry, versionsFor } from './registry.mjs';
 import { askServer, canAsk, missingServer, serverEnv, serverFolder } from './server.mjs';
 import { HOST_SYSTEM, serverSystemOf, SYSTEMS } from './system.mjs';
 import { copyTemplate, gitAuthor, writeFile } from './template.mjs';
-import { c, CliError } from './ui.mjs';
+import { banner, c, CliError } from './ui.mjs';
 
 /**
  * The tools a project gets besides the core and its modules. knip reads the
@@ -80,7 +80,8 @@ export async function initProject(options) {
 	const localCore = local ? await needLocalCore() : null;
 	const localModules = localCore?.api.localModules() ?? {};
 
-	p.intro(`${c.bold(c.cyan('amxts'))} ${c.dim(VERSION)} ${c.dim('·')} a new project`);
+	banner(VERSION, 'a new project', { logo: true });
+	p.intro();
 
 	// 1. The package manager, first: the rest is said in its words.
 	const detected = packageManagerOfAgent() ?? 'npm';

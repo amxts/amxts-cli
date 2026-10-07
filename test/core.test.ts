@@ -59,7 +59,7 @@ describe('the project\'s core', () => {
 		inTemp((dir) => {
 			standInProject(dir, CORE, CLI_API);
 			const run = amxts(['build'], dir);
-			expect(run.out).toBe(`amxts ${CORE} · build\ntask prepare --quiet\ntask build\n`);
+			expect(run.out).toBe(`{•} amxts ${CORE} · build\ntask prepare --quiet\ntask build\n`);
 			expect(amxts(['prepare'], dir).out).toBe('task prepare\n');
 		});
 	});

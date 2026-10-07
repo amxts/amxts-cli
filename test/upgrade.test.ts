@@ -325,7 +325,7 @@ test('the whole run, as a user runs it: packages, code, build, server and the su
 		expect(run.code).toBe(0);
 		const out = run.out.replace(/--report \S+/, '--report <file>').replace(/\\/g, '/').replaceAll(dir.replace(/\\/g, '/'), '<project>');
 		expect(out).toBe([
-			`amxts ${VERSION} · upgrade`,
+			`{•} amxts ${VERSION} · upgrade`,
 			`◇ Packages: amxts ${CORE}`,
 			`i @amxts/core  ^${CORE} (already)`,
 			'◇ Code',

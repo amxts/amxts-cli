@@ -16,10 +16,15 @@ export const CORE = CORE_RANGE.replace(/^\^/, '');
 /** A core of the next minor version, which this command does not drive. */
 export const NEXT_CORE = CORE.replace(/^(\d+)\.(\d+)\.\d+$/, (_, major, minor) => `${major}.${Number(minor) + 1}.0`);
 
-/** The environment a command runs in: no colors, as from a shell - no package manager's agent, which `bun run test` would pass on and the command would take for the user's. */
+/**
+ * The environment a command runs in: no colors, as from a shell - no package
+ * manager's agent, which `bun run test` would pass on and the command would
+ * take for the user's - and a console that draws the logo as `{•}`, not
+ * whichever terminal runs the tests.
+ */
 function environment(env: Record<string, string>) {
-	const { FORCE_COLOR: _, npm_config_user_agent: __, ...inherited } = process.env;
-	return { ...inherited, NO_COLOR: '1', ...env };
+	const { FORCE_COLOR: _, npm_config_user_agent: __, WT_SESSION: ___, TERM_PROGRAM: ____, ConEmuTask: _____, TERMINAL_EMULATOR: ______, LC_ALL: _______, LC_CTYPE: ________, ...inherited } = process.env;
+	return { ...inherited, NO_COLOR: '1', TERM: 'linux', LANG: 'C.UTF-8', ...env };
 }
 
 /** Runs a script with Node: its exit code and everything it printed. */
