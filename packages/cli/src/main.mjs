@@ -11,8 +11,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
 import { GLOBAL_FLAGS, parseArgs } from './args.mjs';
-import { needBun, needProject, projectCore, runTask, runTaskOrExit, VERSION } from './core.mjs';
+import { needBun, needProject, projectCore, runTask, runTaskOrExit, setting, startTask, VERSION } from './core.mjs';
 import { prepare, TARGETS } from './includes.mjs';
+import { stopTree, takeLock } from './lock.mjs';
 import { detectPackageManager, PACKAGE_MANAGERS, run } from './pm.mjs';
 import { serverMismatch } from './server-update.mjs';
 import { ensureServer } from './server.mjs';
@@ -84,25 +85,45 @@ export const COMMANDS = {
 	},
 	dev: {
 		description: 'Build, deploy to the server in AMXTS_SERVER, and again on every save',
-		usage: 'amxts dev [--os windows|linux] [--docker]',
+		usage: 'amxts dev [--os windows|linux] [--docker] [--no-tui] [--takeover]',
 		flags: {
 			os: OS_FLAG,
 			docker: { type: 'boolean', description: 'For the Docker server that mounts this project: build for Linux into dist/ on every save, which it reloads, and show its console' },
+			tui: { type: 'boolean', description: 'The panel under the build\'s lines, in a terminal (--no-tui, or AMXTS_TUI=plain, for the lines alone)' },
+			takeover: { type: 'boolean', description: 'Stop the amxts dev already running for this project, and run here' },
 		},
-		examples: ['amxts dev', 'amxts dev --os linux', 'amxts dev --docker'],
+		examples: ['amxts dev', 'amxts dev --os linux', 'amxts dev --docker', 'amxts dev --takeover'],
 		async run({ values }) {
 			if (values.docker && values.os && values.os !== 'linux')
 				throw new CliError('The Docker server is Linux: --docker builds for Linux.', 'Leave out --os.');
 			const core = await projectCore();
-			banner(core.version, 'dev');
+			const root = needProject();
+			const { devPanel, wantsPanel } = await import('./dev-panel.mjs');
+			// The panel has the logo in it; the build's lines alone start with it.
+			const panel = wantsPanel({ tui: values.tui });
+			if (!panel) banner(core.version, 'dev', { logo: true });
+			takeLock(root, { takeover: values.takeover, say: log.info });
 			// The container reads dist/ where it is: nothing to deploy, and AMXTS_SERVER is not asked.
 			if (!values.docker) {
-				await ensureServer(needProject(), detectPackageManager());
+				await ensureServer(root, detectPackageManager());
 				warnServer(core, osArgs(values));
 			}
 			await prepare(core, { quiet: true });
-			if (values.docker) runTaskOrExit(core, 'build', ['--watch', '--docker', '--os', 'linux']);
-			else runTaskOrExit(core, 'build', ['--deploy', '--watch', ...osArgs(values)]);
+			const args = values.docker ? ['--watch', '--docker', '--os', 'linux'] : ['--deploy', '--watch', ...osArgs(values)];
+			if (panel) {
+				const { rconTarget } = await import('./rcon.mjs');
+				devPanel(core, args, { target: rconTarget(root), deployTo: values.docker ? '' : setting(root, 'AMXTS_SERVER').replace(/\\/g, '/') });
+				return;
+			}
+			const child = startTask(core, 'build', args);
+			// --takeover from another terminal: the build goes with this.
+			for (const signal of ['SIGTERM', 'SIGHUP']) {
+				process.on(signal, () => {
+					stopTree(child.pid);
+					process.exit(0);
+				});
+			}
+			child.on('exit', code => process.exit(code ?? 1));
 		},
 	},
 	rcon: {

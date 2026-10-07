@@ -9,14 +9,14 @@
 //
 // Creating a project or a module needs no core: they run on their own.
 // `--local` takes the core from this machine instead of npm (localCore()).
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { addArgs, commandLine, detectPackageManager, execAmxts, versionOf } from './pm.mjs';
-import { CliError, debug } from './ui.mjs';
+import { CliError, debug, report } from './ui.mjs';
 
 /** The command's own package folder: packages/cli in its repository. */
 export const CLI_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -275,19 +275,42 @@ export function needBun(core, what = 'builds plugins') {
  * @param {string[]} [args]
  */
 export function runTask(core, name, args = []) {
+	const result = spawnSync(...taskSpawn(core, name, args, { stdio: 'inherit' }));
+	if (result.error) throw new CliError(`Bun did not start: ${result.error.message}`, BUN_HINT);
+	return result.status ?? 1;
+}
+
+/** A task as spawn takes it: the file, its arguments (none when it goes through the shell) and the options. */
+function taskSpawn(core, name, args, options) {
 	const task = core.api.task(name, args);
-	const env = { ...process.env, ...(debug() ? { AMXTS_DEBUG: '1' } : {}) };
-	if (task.runtime === 'node') {
-		return spawnSync(process.execPath, task.args, { stdio: 'inherit', env }).status ?? 1;
-	}
+	const env = { ...process.env, ...(debug() ? { AMXTS_DEBUG: '1' } : {}), ...options.env };
+	if (task.runtime === 'node') return [process.execPath, task.args, { ...options, env }];
 	const binary = needBun(core);
 	// A Bun on PATH goes through the shell on Windows, where it may be
 	// bun.cmd; a path with a space is quoted for it.
-	const result = binary === 'bun' && process.platform === 'win32'
-		? spawnSync(commandLine(['bun', ...task.args]), { stdio: 'inherit', shell: true, env })
-		: spawnSync(binary, task.args, { stdio: 'inherit', env });
-	if (result.error) throw new CliError(`Bun did not start: ${result.error.message}`, BUN_HINT);
-	return result.status ?? 1;
+	return binary === 'bun' && process.platform === 'win32'
+		? [commandLine(['bun', ...task.args]), { ...options, shell: true, env }]
+		: [binary, task.args, { ...options, env }];
+}
+
+/**
+ * Starts one of the core's tasks and leaves it running: `dev`'s build, which
+ * watches. `pipe` takes its output instead of the terminal, with its colours.
+ * @param {Core} core
+ * @param {string} name
+ * @param {string[]} args
+ * @param {{ pipe?: boolean }} [options]
+ * @returns {import('node:child_process').ChildProcess} the task
+ */
+export function startTask(core, name, args, { pipe = false } = {}) {
+	const child = pipe
+		? spawn(...taskSpawn(core, name, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { FORCE_COLOR: process.env.NO_COLOR === undefined ? '1' : '0' } }))
+		: spawn(...taskSpawn(core, name, args, { stdio: 'inherit' }));
+	child.on('error', (error) => {
+		report(new CliError(`Bun did not start: ${error.message}`, BUN_HINT));
+		process.exit(1);
+	});
+	return child;
 }
 
 /** Runs a task and stops with its exit code when it fails. */
