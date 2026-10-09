@@ -240,6 +240,8 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 			: { ok: true, line: `the module of amxts ${version} goes in once @amxts/core ${version} is installed` };
 	}
 	console.log(['', ...summary(outcome)].join('\n'));
+	// A script that upgrades and goes on hears that the build failed.
+	if (outcome.build === 'failed') process.exitCode = 1;
 	return outcome;
 }
 

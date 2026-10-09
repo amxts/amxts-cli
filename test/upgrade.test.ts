@@ -362,3 +362,16 @@ test('the whole run, as a user runs it: packages, code, build, server and the su
 		rmSync(dir, { recursive: true, force: true });
 	}
 });
+
+test('a build that fails fails the upgrade', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'amxts-upgrade-'));
+	try {
+		standInProject(dir, CORE, CLI_API, '');
+		writeFileSync(join(dir, 'package.json'), `{ "name": "my-server", "devDependencies": { "@amxts/core": "^${CORE}" } }\n`);
+		const run = amxts(['upgrade', '--to', CORE], dir, { AMXTS_TEST_BUILD_FAILS: '1' });
+		expect(run.out).toContain('✖ the build failed: see above');
+		expect(run.code).toBe(1);
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});

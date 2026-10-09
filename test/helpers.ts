@@ -80,6 +80,7 @@ export function standInProject(dir: string, version: string, api?: number, env =
 		'import { existsSync, readFileSync, writeFileSync } from "node:fs";',
 		'const args = process.argv.slice(2);',
 		'console.log("task", ...args);',
+		'if (args[0] === "build" && process.env.AMXTS_TEST_BUILD_FAILS) process.exit(1);',
 		'if (args[0] === "prepare" && existsSync("amxts.config.ts")) console.log(readFileSync("amxts.config.ts", "utf8").match(/modules: .*/)[0]);',
 		// The upgrade's report: one change and one place to check by hand.
 		`if (args[0] === "upgrade" && args.includes("--report")) writeFileSync(args[args.indexOf("--report") + 1], JSON.stringify(${JSON.stringify(UPGRADE_REPORT)}));`,
