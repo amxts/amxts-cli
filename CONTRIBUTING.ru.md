@@ -94,7 +94,7 @@ postinstall `bun`. `bunFor()` (`src/core.mjs`) берёт его, Bun из PATH 
 | `src/rcon.mjs` | rcon по UDP: `packet()`, `replyText()`, `rcon()`, сервер проекта (`rconTarget()`: `127.0.0.1`, `AMXTS_PORT`, `rcon_password` из его `server.cfg`) и что говорят `status`, `stats`, `amxts_plugins` и `maps *` |
 | `src/lock.mjs` | один `dev` на проект: `.amxts/dev.lock`, `--takeover` |
 | `src/update-check.mjs` | строка о новом ядре: читается из `~/.cache/amxts/update.json`, который раз в день пишет проверка в отдельном процессе |
-| `src/server-update.mjs` | шаг сервера: манифест и файлы выпуска (URL или папка в `AMXTS_RELEASE_URL`), проверка sha256, занятый файл находится до любых изменений, старые файлы остаются рядом, `amxts_host.amxx` убирается из `plugins.ini`; `serverMismatch()` для `dev` и `build` |
+| `src/server-update.mjs` | шаг сервера: манифест и файлы выпуска (URL или папка в `AMXTS_RELEASE_URL`), проверка sha256, занятый файл находится до любых изменений, старые файлы остаются рядом, плагин старого выпуска убирается из AMX Mod X; `serverMismatch()` для `dev` и `build` |
 
 ## Панель dev
 

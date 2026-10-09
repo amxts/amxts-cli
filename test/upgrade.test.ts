@@ -215,6 +215,8 @@ describe('the server', () => {
 		write(join(game, 'addons', 'amxts', 'plugins.ini'), '');
 		write(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'), moduleOf('0.0.9'));
 		write(join(game, 'addons', 'amxmodx', 'configs', 'plugins.ini'), 'admin.amxx\namxts_host.amxx   ; debug\nmenufront.amxx\n');
+		write(join(game, 'addons', 'amxmodx', 'configs', 'plugins-amxts.ini'), 'amxts_host.amxx\n');
+		write(join(game, 'addons', 'amxmodx', 'plugins', 'amxts_host.amxx'), 'the old plugin');
 		if (tools) {
 			write(join(game, 'addons', 'amxts', 'tools', 'amxts-compile.exe'), 'old compiler');
 			write(join(game, 'addons', 'amxts', 'tools', 'wamrc.exe'), 'old wamrc');
@@ -241,7 +243,7 @@ describe('the server', () => {
 		});
 	}
 
-	test('the files of the release go in, the old ones beside them; plugins.ini loses the host plugin', async () => {
+	test('the files of the release go in, the old ones beside them; AMX Mod X loses the old plugin', async () => {
 		await withServer(async (dir) => {
 			const { core, at, files, updated } = await oldServer(dir);
 			expect(serverMismatch(core, dir)).toBe(`the server runs amxts 0.0.9, this project ${core.version} - run amxts upgrade`);
@@ -256,6 +258,7 @@ describe('the server', () => {
 				expect(readFileSync(at(`addons/amxts/tools/${tool}`), 'utf8')).toBe(file ? `new ${file.asset}` : `old ${tool === 'wamrc.exe' ? 'wamrc' : 'compiler'}`);
 			}
 			expect(readFileSync(at('addons/amxmodx/configs/plugins.ini'), 'utf8')).toBe('admin.amxx\nmenufront.amxx\n');
+			expect(['addons/amxmodx/plugins/amxts_host.amxx', 'addons/amxmodx/configs/plugins-amxts.ini'].filter(path => existsSync(at(path)))).toEqual([]);
 			expect(serverMismatch(core, dir)).toBeNull();
 			// Again: nothing to do.
 			expect(await updateServer(core.api, dir)).toEqual({ ok: true, line: `already amxts ${core.version}` });

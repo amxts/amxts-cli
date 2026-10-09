@@ -7,8 +7,9 @@
 // downloaded and checked, and none of the files it replaces is in use: a
 // running Windows server holds its module, which cannot be written then.
 // The file it replaces stays beside it, with its version
-// (amxts_amxx.dll.0.1.0). AMX Mod X's plugins.ini loses an
-// `amxts_host.amxx` line: the module loads its host plugin itself.
+// (amxts_amxx.dll.0.1.0). What an older release put into AMX Mod X goes: an
+// `amxts_host.amxx` line of its plugins.ini, that plugin and its list -
+// amxts needs no plugin.
 //
 // Also the check `amxts dev` and `build` start with: the release the
 // server's module is of, read from the module file (the core's
@@ -46,6 +47,9 @@ export function writable(path) {
 		throw error;
 	}
 }
+
+/** The files of an older release's plugin in AMX Mod X, from the game folder. */
+const LEFTOVERS = ['addons/amxmodx/plugins/amxts_host.amxx', 'addons/amxmodx/configs/plugins-amxts.ini'];
 
 /** AMX Mod X's plugins.ini with its `amxts_host.amxx` lines left out; null when it has none. */
 export function withoutHost(text) {
@@ -134,11 +138,13 @@ export async function updateServer(api, dir, { dryRun = false, canWrite = writab
 	const changing = files.filter(file => !file.same);
 	const pluginsIni = join(game, 'addons', 'amxmodx', 'configs', 'plugins.ini');
 	const cleaned = existsSync(pluginsIni) ? withoutHost(readFileSync(pluginsIni, 'utf8')) : null;
+	const leftovers = LEFTOVERS.map(path => join(game, path)).filter(path => existsSync(path));
+	const tidied = [...(cleaned === null ? [] : [pluginsIni]), ...leftovers].map(slashes).join(', ');
 	const names = changing.map(file => file.path.split(/[\\/]/).pop()).join(', ');
 
 	if (dryRun) {
 		for (const file of changing) log.info(`would put ${file.asset} of ${version} at ${slashes(file.path)}`);
-		if (cleaned !== null) log.info(`would take amxts_host.amxx out of ${slashes(pluginsIni)}`);
+		if (tidied) log.info(`would take an older amxts's plugin out of ${tidied}`);
 		return { ok: true, line: changing.length ? `${names} would go from amxts ${before} to ${version}` : `already amxts ${version}` };
 	}
 
@@ -164,10 +170,9 @@ export async function updateServer(api, dir, { dryRun = false, canWrite = writab
 		writeFileSync(file.path, file.data, { mode: old?.mode ?? 0o755 });
 		log.success(`${file.path.split(/[\\/]/).pop()} ${c.dim(`${before} →`)} ${version}${old ? c.dim(` (the old one: ${file.path.split(/[\\/]/).pop()}.${before})`) : ''}`);
 	}
-	if (cleaned !== null) {
-		writeFileSync(pluginsIni, cleaned);
-		log.success(`Took amxts_host.amxx out of ${slashes(pluginsIni)}: the module loads it itself`);
-	}
-	if (!changing.length) return { ok: true, line: `already amxts ${version}${cleaned !== null ? ', plugins.ini cleaned' : ''}` };
+	if (cleaned !== null) writeFileSync(pluginsIni, cleaned);
+	for (const path of leftovers) rmSync(path, { force: true });
+	if (tidied) log.success(`Took an older amxts's plugin out of ${tidied}: amxts needs no plugin`);
+	if (!changing.length) return { ok: true, line: `already amxts ${version}${tidied ? ', the old plugin taken out' : ''}` };
 	return { ok: true, line: `${names} ${before} → ${version} - restart the server to load it` };
 }

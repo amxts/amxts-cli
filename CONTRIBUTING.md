@@ -94,7 +94,7 @@ A project needs no Bun of its own.
 | `src/rcon.mjs` | rcon over UDP: `packet()`, `replyText()`, `rcon()`, the project's server (`rconTarget()`: `127.0.0.1`, `AMXTS_PORT`, `rcon_password` of its `server.cfg`), and what `status`, `stats`, `amxts_plugins` and `maps *` say |
 | `src/lock.mjs` | one `dev` per project: `.amxts/dev.lock`, `--takeover` |
 | `src/update-check.mjs` | the line about a newer core: read from `~/.cache/amxts/update.json`, written by a check in a process of its own once a day |
-| `src/server-update.mjs` | the server step: the release's manifest and files (a URL, or a folder in `AMXTS_RELEASE_URL`), the sha256 checked, a file in use found before anything changes, the old files kept, `amxts_host.amxx` out of `plugins.ini`; `serverMismatch()` for `dev` and `build` |
+| `src/server-update.mjs` | the server step: the release's manifest and files (a URL, or a folder in `AMXTS_RELEASE_URL`), the sha256 checked, a file in use found before anything changes, the old files kept, an older release's plugin taken out of AMX Mod X; `serverMismatch()` for `dev` and `build` |
 
 ## The dev panel
 
