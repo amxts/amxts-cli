@@ -202,7 +202,12 @@ describe('the packages', () => {
 });
 
 describe('the server', () => {
-	/** A server of an older release, with its compiler, and a release folder of the core's version. */
+	/**
+	 * A server of an older release - with the compiler an older kit put in
+	 * addons/amxts/tools - and a release folder of the core's version, of the
+	 * files the core says a server runs. `updated`: the names of those files on
+	 * the server, as an update names them.
+	 */
 	async function oldServer(dir: string, { tools = true } = {}) {
 		const core = (await localCore())!;
 		const game = join(dir, 'hlds', 'cstrike');
@@ -215,14 +220,15 @@ describe('the server', () => {
 			write(join(game, 'addons', 'amxts', 'tools', 'wamrc.exe'), 'old wamrc');
 		}
 		writeFileSync(join(dir, '.env'), `AMXTS_SERVER=${join(game, 'addons', 'amxts').replace(/\\/g, '/')}\n`);
+		const files: { asset: string; path: string; tool: boolean }[] = core.api.release('windows').files;
 		const release = releaseFolder(join(dir, 'release'), core.version, {
+			...Object.fromEntries(files.map(file => [file.asset, Buffer.from(`new ${file.asset}`)])),
 			'amxts_amxx.dll': moduleOf(core.version, '11111111'),
-			'amxts-compile-windows-x64.exe': Buffer.from('new compiler'),
-			'wamrc-windows-x64.exe': Buffer.from('new wamrc'),
 			'amxts-server-windows-x64.zip': Buffer.from('the kit'),
 		});
 		process.env.AMXTS_RELEASE_URL = release;
-		return { core, game, release, at: (path: string) => join(game, path) };
+		const updated = files.filter(file => !file.tool || tools).map(file => file.path.split('/').pop()).join(', ');
+		return { core, game, release, files, updated, at: (path: string) => join(game, path) };
 	}
 
 	async function withServer(body: (dir: string) => Promise<void>) {
@@ -235,17 +241,20 @@ describe('the server', () => {
 		});
 	}
 
-	test('the module and the compiler of the release go in, the old ones beside them; plugins.ini loses the host plugin', async () => {
+	test('the files of the release go in, the old ones beside them; plugins.ini loses the host plugin', async () => {
 		await withServer(async (dir) => {
-			const { core, at } = await oldServer(dir);
+			const { core, at, files, updated } = await oldServer(dir);
 			expect(serverMismatch(core, dir)).toBe(`the server runs amxts 0.0.9, this project ${core.version} - run amxts upgrade`);
 			const outcome = await updateServer(core.api, dir);
-			expect(outcome).toEqual({ ok: true, line: `amxts_amxx.dll, amxts-compile.exe, wamrc.exe 0.0.9 → ${core.version} - restart the server to load it` });
+			expect(outcome).toEqual({ ok: true, line: `${updated} 0.0.9 → ${core.version} - restart the server to load it` });
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll'))).toEqual(moduleOf(core.version, '11111111'));
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll.0.0.9'))).toEqual(moduleOf('0.0.9'));
-			expect(readFileSync(at('addons/amxts/tools/amxts-compile.exe'), 'utf8')).toBe('new compiler');
-			expect(readFileSync(at('addons/amxts/tools/amxts-compile.exe.0.0.9'), 'utf8')).toBe('old compiler');
-			expect(readFileSync(at('addons/amxts/tools/wamrc.exe'), 'utf8')).toBe('new wamrc');
+			// A file the release has replaces the server's; one it has not - the
+			// compiler of a core that has none - is left as it is: nothing runs it.
+			for (const tool of ['amxts-compile.exe', 'wamrc.exe']) {
+				const file = files.find(each => each.path.endsWith(`/${tool}`));
+				expect(readFileSync(at(`addons/amxts/tools/${tool}`), 'utf8')).toBe(file ? `new ${file.asset}` : `old ${tool === 'wamrc.exe' ? 'wamrc' : 'compiler'}`);
+			}
 			expect(readFileSync(at('addons/amxmodx/configs/plugins.ini'), 'utf8')).toBe('admin.amxx\nmenufront.amxx\n');
 			expect(serverMismatch(core, dir)).toBeNull();
 			// Again: nothing to do.
@@ -275,16 +284,16 @@ describe('the server', () => {
 	test('a file that is not the one the manifest lists changes nothing', async () => {
 		await withServer(async (dir) => {
 			const { core, at, release } = await oldServer(dir);
-			writeFileSync(join(release, 'wamrc-windows-x64.exe'), 'something else');
-			expect(updateServer(core.api, dir)).rejects.toThrow('wamrc-windows-x64.exe from');
+			writeFileSync(join(release, 'amxts_amxx.dll'), 'something else');
+			expect(updateServer(core.api, dir)).rejects.toThrow('amxts_amxx.dll from');
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll'))).toEqual(moduleOf('0.0.9'));
 		});
 	});
 
 	test('a dry run reads the manifest and changes nothing', async () => {
 		await withServer(async (dir) => {
-			const { core, at } = await oldServer(dir);
-			expect((await updateServer(core.api, dir, { dryRun: true })).line).toBe(`amxts_amxx.dll, amxts-compile.exe, wamrc.exe would go from amxts 0.0.9 to ${core.version}`);
+			const { core, at, updated } = await oldServer(dir);
+			expect((await updateServer(core.api, dir, { dryRun: true })).line).toBe(`${updated} would go from amxts 0.0.9 to ${core.version}`);
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll'))).toEqual(moduleOf('0.0.9'));
 			expect(readFileSync(at('addons/amxmodx/configs/plugins.ini'), 'utf8')).toContain('amxts_host.amxx');
 		});
