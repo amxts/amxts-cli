@@ -39,6 +39,9 @@ builds, deploys, type-checks and tests. This repository has two packages:
   again on every save. In a terminal a panel stays under its lines: the
   server's map, players and FPS over rcon, each plugin's state, the last
   rebuild, and keys to rebuild, change the map or restart the round.
+- **Built on your machine.** `amxts build` and `dev` compile the plugins
+  here, for the server's system, and the server loads only the `.aot` they
+  make: it compiles nothing, so it needs no compiler and no memory for one.
 - **rcon from the project.** `amxts rcon <command>` runs a command on the
   project's server and prints the answer (`--json` for scripts and agents).
 - **Errors you can act on.** One line and a hint; a typo gets "did you mean";
