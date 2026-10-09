@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.2.1...v0.3.0)
+
+### Summary
+
+The command for amxts 0.3: it drives the 0.3 cores, and the `amxts upgrade` of a 0.2 project installs it and hands the rest over to it. A panel under `amxts dev`, `amxts rcon`, and a line when a newer amxts is out.
+
+### 🚀 Enhancements
+
+- **cli:** The `amxts` logo in the banner ([e80a915](https://github.com/amxts/amxts-cli/commit/e80a915))
+- **rcon:** `amxts` rcon sends a command to the server ([9a93721](https://github.com/amxts/amxts-cli/commit/9a93721))
+- **dev:** A panel under the build, one dev per project ([5920088](https://github.com/amxts/amxts-cli/commit/5920088))
+- **cli:** A line when a newer `amxts` is out ([f7e4d25](https://github.com/amxts/amxts-cli/commit/f7e4d25))
+- **templates:** `player.print`, the wave is `server.print` ([52467a0](https://github.com/amxts/amxts-cli/commit/52467a0))
+
+### 🩹 Fixes
+
+- **create:** The starter prints to players, on every core ([44fbf3b](https://github.com/amxts/amxts-cli/commit/44fbf3b))
+- **upgrade:** Take an older release's plugin out of AMX Mod X ([ba3f7fe](https://github.com/amxts/amxts-cli/commit/ba3f7fe))
+- **upgrade:** A failed build fails the upgrade ([32882fc](https://github.com/amxts/amxts-cli/commit/32882fc))
+
+### 📖 Documentation
+
+- **readme:** The hint for an older core ([b3fccfe](https://github.com/amxts/amxts-cli/commit/b3fccfe))
+- The dev panel, `amxts` rcon and the update line ([cfbefbc](https://github.com/amxts/amxts-cli/commit/cfbefbc))
+- **readme:** The server loads only what the project builds ([4bbb618](https://github.com/amxts/amxts-cli/commit/4bbb618))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.2.1
 
 [compare changes](https://github.com/amxts/amxts-cli/compare/v0.2.0...v0.2.1)
