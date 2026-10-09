@@ -46,6 +46,16 @@ describe('the project\'s core', () => {
 		});
 	});
 
+	test('as the project\'s postinstall, prepare with a core the command cannot drive warns, and the install goes on', () => {
+		inTemp((dir) => {
+			standInProject(dir, '0.1.0', CLI_API);
+			const postinstall = amxts(['prepare'], dir, { npm_lifecycle_event: 'postinstall' });
+			expect(postinstall.out).toContain(`▲ @amxts/core 0.1.0 is not a core amxts ${VERSION} works with`);
+			expect(postinstall.code).toBe(0);
+			expect(amxts(['prepare'], dir, { npm_lifecycle_event: '' }).code).toBe(1);
+		});
+	});
+
 	test('a bun task runs on the Bun the core comes with', () => {
 		inTemp((dir) => {
 			standInProject(dir, CORE, CLI_API);

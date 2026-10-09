@@ -244,7 +244,15 @@ export const COMMANDS = {
 		description: 'Fetch the server\'s includes and write .amxts/tsconfig.json for the editor (build does it too)',
 		usage: 'amxts prepare',
 		async run() {
-			await prepare(await projectCore());
+			try {
+				await prepare(await projectCore());
+			} catch (error) {
+				// A project's postinstall: installing a newer command into a project of
+				// an older core - the upgrade's first step - is no failed install.
+				if (!(error instanceof CliError) || process.env.npm_lifecycle_event !== 'postinstall') throw error;
+				log.warn(error.message);
+				if (error.hint) log.hint(error.hint);
+			}
 		},
 	},
 	upgrade: {
