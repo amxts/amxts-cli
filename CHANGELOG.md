@@ -21,6 +21,7 @@ The command for amxts 0.3: it drives the 0.3 cores, and the `amxts upgrade` of a
 - **create:** The starter prints to players, on every core ([44fbf3b](https://github.com/amxts/amxts-cli/commit/44fbf3b))
 - **upgrade:** Take an older release's plugin out of AMX Mod X ([ba3f7fe](https://github.com/amxts/amxts-cli/commit/ba3f7fe))
 - **upgrade:** A failed build fails the upgrade ([32882fc](https://github.com/amxts/amxts-cli/commit/32882fc))
+- **cli:** A newer command installs into an older project ([1da9def](https://github.com/amxts/amxts-cli/commit/1da9def))
 
 ### 📖 Documentation
 
