@@ -14,12 +14,17 @@ const greeting = "Welcome";
 // #endif
 
 server.addCommand("/hp", ({ player }) => sayHp(player));
-server.addEventListener("putInServer", event => print(0, `${greeting}, ${event.player.name}!`));
+server.addEventListener("putInServer", event => print(event.player, `${greeting}, ${event.player.name}!`));
 // #if menu-core
 
 // A menu made in code: its title and items can be functions of the player it is shown to.
 const hello = menus.create("HELLO", { title: ({ player }) => `Hello, ${player.name}` });
-hello.addItem({ title: "Wave", onSelect: ({ player }) => print(0, `${player.name} waves`) });
+hello.addItem({
+	title: "Wave",
+	onSelect: ({ player }) => {
+		for (const other of server.players) print(other, `${player.name} waves`);
+	},
+});
 hello.addItem({
 	title: ({ player }) => `Heal (${player.health} HP)`,
 	visible: ({ player }) => player.health < 100,
@@ -34,7 +39,12 @@ server.addCommand("/menu", ({ player }) => hello.show(player));
 
 // A menu: its title and items can be functions of the player it is shown to.
 const hello = new Menu(({ player }) => `Hello, ${player.name}`);
-hello.addItem({ title: "Wave", onSelect: ({ player }) => print(0, `${player.name} waves`) });
+hello.addItem({
+	title: "Wave",
+	onSelect: ({ player }) => {
+		for (const other of server.players) print(other, `${player.name} waves`);
+	},
+});
 hello.addItem({
 	title: ({ player }) => `Heal (${player.health} HP)`,
 	visible: ({ player }) => player.health < 100,
