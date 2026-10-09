@@ -1,7 +1,7 @@
 {
 	"name": "@amxts/cli",
 	"type": "module",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "The amxts command: create a project or a module, add modules, build, deploy, type-check and test",
 	"author": {
 		"name": "kukson777",

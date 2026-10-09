@@ -1,47 +1,64 @@
 [
-	{
-		"name": "config-core",
-		"npm": "@amxts/config-core",
-		"repo": "amxts/config-core",
-		"description": "Configs in INI, YAML or JSON, read into typed objects and written back",
-		"category": "config",
-		"type": "official",
-		"logo": "https://raw.githubusercontent.com/amxts/config-core/HEAD/assets/logo.svg",
-		"maintainers": [
-			{
-				"github": "kukson777"
-			}
-		],
-		"requires": []
-	},
-	{
-		"name": "menu-core",
-		"npm": "@amxts/menu-core",
-		"repo": "amxts/menu-core",
-		"description": "Menus from INI, YAML or JSON files, with conditions and placeholders",
-		"category": "ui",
-		"type": "official",
-		"logo": "https://raw.githubusercontent.com/amxts/menu-core/HEAD/assets/logo.svg",
-		"maintainers": [
-			{
-				"github": "kukson777"
-			}
-		],
-		"requires": ["@amxts/config-core"]
-	},
-	{
-		"name": "resemiclip",
-		"npm": "@amxts/resemiclip",
-		"repo": "amxts/resemiclip",
-		"description": "Semiclip over the ReSemiclip module - who walks through whom, as a rule over two players",
-		"category": "gameplay",
-		"type": "official",
-		"logo": "https://raw.githubusercontent.com/amxts/resemiclip/HEAD/assets/logo.svg",
-		"maintainers": [
-			{
-				"github": "kukson777"
-			}
-		],
-		"requires": []
-	}
+  {
+    "name": "config-core",
+    "npm": "@amxts/config-core",
+    "repo": "amxts/config-core",
+    "description": "Configs in INI, YAML or JSON, read into typed objects and written back",
+    "category": "config",
+    "type": "official",
+    "logo": "https://raw.githubusercontent.com/amxts/config-core/HEAD/assets/logo.svg",
+    "maintainers": [
+      {
+        "github": "kukson777"
+      }
+    ],
+    "requires": []
+  },
+  {
+    "name": "ftp",
+    "npm": "@amxts/ftp",
+    "repo": "amxts/ftp",
+    "description": "FTP, FTPS and SFTP - upload, download and list files on another server, every call a promise",
+    "category": "network",
+    "type": "official",
+    "logo": "https://raw.githubusercontent.com/amxts/ftp/HEAD/assets/logo.svg",
+    "maintainers": [
+      {
+        "github": "kukson777"
+      }
+    ],
+    "requires": []
+  },
+  {
+    "name": "menu-core",
+    "npm": "@amxts/menu-core",
+    "repo": "amxts/menu-core",
+    "description": "Menus from INI, YAML or JSON files, with conditions and placeholders",
+    "category": "ui",
+    "type": "official",
+    "logo": "https://raw.githubusercontent.com/amxts/menu-core/HEAD/assets/logo.svg",
+    "maintainers": [
+      {
+        "github": "kukson777"
+      }
+    ],
+    "requires": [
+      "@amxts/config-core"
+    ]
+  },
+  {
+    "name": "resemiclip",
+    "npm": "@amxts/resemiclip",
+    "repo": "amxts/resemiclip",
+    "description": "Semiclip over the ReSemiclip module - who walks through whom, as a rule over two players",
+    "category": "gameplay",
+    "type": "official",
+    "logo": "https://raw.githubusercontent.com/amxts/resemiclip/HEAD/assets/logo.svg",
+    "maintainers": [
+      {
+        "github": "kukson777"
+      }
+    ],
+    "requires": []
+  }
 ]
