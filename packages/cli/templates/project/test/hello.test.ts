@@ -44,4 +44,15 @@ test("/menu heals a hurt player", async () => {
 	menus.press(alice, 2);
 	expect(alice.health).toBe(100);
 });
+
+test("Wave in /menu tells everyone", async () => {
+	const server = await setup();
+	const menus = menusOf(server);
+	const alice = server.join("Alice");
+	const bob = server.join("Bob");
+
+	alice.say("/menu");
+	menus.press(alice, 1);
+	expect(bob.chat).toContain("Alice waves");
+});
 // #endif

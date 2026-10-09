@@ -21,5 +21,5 @@ let greeting = "";
 
 /** Greets the player in chat. */
 export function greet(player: Player) {
-	print(player, `${greeting}, ${player.name}!`);
+	player.print(`${greeting}, ${player.name}!`);
 }

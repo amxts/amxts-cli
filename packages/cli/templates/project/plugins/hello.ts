@@ -14,7 +14,7 @@ const greeting = "Welcome";
 // #endif
 
 server.addCommand("/hp", ({ player }) => sayHp(player));
-server.addEventListener("putInServer", event => print(event.player, `${greeting}, ${event.player.name}!`));
+server.addEventListener("putInServer", event => event.player.print(`${greeting}, ${event.player.name}!`));
 // #if menu-core
 
 // A menu made in code: its title and items can be functions of the player it is shown to.
@@ -22,7 +22,7 @@ const hello = menus.create("HELLO", { title: ({ player }) => `Hello, ${player.na
 hello.addItem({
 	title: "Wave",
 	onSelect: ({ player }) => {
-		for (const other of server.players) print(other, `${player.name} waves`);
+		server.print(`${player.name} waves`);
 	},
 });
 hello.addItem({
@@ -42,7 +42,7 @@ const hello = new Menu(({ player }) => `Hello, ${player.name}`);
 hello.addItem({
 	title: "Wave",
 	onSelect: ({ player }) => {
-		for (const other of server.players) print(other, `${player.name} waves`);
+		server.print(`${player.name} waves`);
 	},
 });
 hello.addItem({
@@ -57,5 +57,5 @@ server.addCommand("/menu", ({ player }) => hello.show(player));
 // #endif
 
 function sayHp(player: Player) {
-	print(player, `${player.name}, your HP: ${player.health}`);
+	player.print(`${player.name}, your HP: ${player.health}`);
 }
