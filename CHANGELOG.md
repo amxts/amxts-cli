@@ -2,11 +2,44 @@
 
 ## v0.3.0
 
+> The command for amxts 0.3.
+
+### 👀 Highlights
+
+#### 🖥️ A panel under `amxts dev`
+
+`amxts dev` builds, deploys to your server and does it again on every save. Now a panel stays under its lines while it runs: the server's map, players and FPS, each plugin's state and the last rebuild. Keys rebuild, change the map or restart the round without leaving the terminal. One `dev` runs per project.
+
+Prefer plain lines? `npx amxts dev --no-tui`.
+
+#### 📡 `amxts rcon`
+
+Run a command on the project's server and see the answer, without opening a game client:
+
+```sh
+npx amxts rcon amxts_plugins
+```
+
+`--json` gives the answer to a script or an agent.
+
+#### 🔔 Know when there's a newer amxts
+
+The command prints one line when a newer amxts is out, so you don't have to check yourself.
+
+#### ⬆️ Upgrading from 0.2
+
+`amxts upgrade` in a 0.2 project installs this command and hands the rest over to it: the 0.3 core, the modules' versions for it, your code rewritten where 0.3 changed the API, a build, and the module on your server. It also takes 0.2's host plugin out of AMX Mod X. A build that fails now fails the upgrade, so you see it at once.
+
+The project a new `npx create-amxts` writes greets players with `player.print` and the whole server with `server.print`.
+
+### 🩹 Important fixes
+
+- A newer command installs into an older project ([1da9def](https://github.com/amxts/amxts-cli/commit/1da9def)).
+- The starter project prints to players on every core it supports ([44fbf3b](https://github.com/amxts/amxts-cli/commit/44fbf3b)).
+
+### 👉 Changelog
+
 [compare changes](https://github.com/amxts/amxts-cli/compare/v0.2.1...v0.3.0)
-
-### Summary
-
-The command for amxts 0.3: it drives the 0.3 cores, and the `amxts upgrade` of a 0.2 project installs it and hands the rest over to it. A panel under `amxts dev`, `amxts rcon`, and a line when a newer amxts is out.
 
 ### 🚀 Enhancements
 
