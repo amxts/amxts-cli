@@ -18,7 +18,7 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { closeSync, existsSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { setting } from './core.mjs';
+import { compareVersions, setting } from './core.mjs';
 import { serverFolderOrNull } from './server.mjs';
 import { c, CliError, log } from './ui.mjs';
 
@@ -79,15 +79,24 @@ function serverOf(api, dir, argv = []) {
 /**
  * The line `amxts dev` and `build` start with when the server's module is of
  * another release than the project's core; null when it is the same, or
- * there is no module to read.
+ * there is no module to read. `warn` when they are of different lines: the
+ * module loads no plugin of another line, while within one it loads them all.
  * @param {import('./core.mjs').Core} core
  * @param {string} dir the project
  * @param {string[]} [argv] --os, when the command was given one
+ * @returns {{ line: string, warn: boolean } | null}
  */
 export function serverMismatch(core, dir, argv = []) {
 	const server = serverOf(core.api, dir, argv);
 	const running = server && core.api.moduleVersion(join(server.game, server.release.files[0].path));
-	return running && running !== core.version ? `the server runs amxts ${running}, this project ${core.version} - run amxts upgrade` : null;
+	if (!running || running === core.version) return null;
+	const lineOf = version => version.split('.').slice(0, 2).join('.');
+	return {
+		line: compareVersions(core.version, running) > 0
+			? `amxts ${core.version} is out for the server (it runs ${running}): amxts upgrade puts it in`
+			: `the server runs a newer amxts, ${running}: amxts upgrade updates this project`,
+		warn: lineOf(running) !== lineOf(core.version),
+	};
 }
 
 /**

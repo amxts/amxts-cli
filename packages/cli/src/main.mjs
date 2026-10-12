@@ -26,8 +26,8 @@ const OS_FLAG = { type: 'string', value: Object.keys(SYSTEMS).join('|'), descrip
 
 /** The line for a server whose module is of another release than the project's core. */
 function warnServer(core, os) {
-	const line = serverMismatch(core, needProject(), os);
-	if (line) log.warn(line);
+	const mismatch = serverMismatch(core, needProject(), os);
+	if (mismatch) (mismatch.warn ? log.warn : log.info)(mismatch.line);
 }
 
 /** The line about a newer amxts, once a day at most (update-check.mjs). */

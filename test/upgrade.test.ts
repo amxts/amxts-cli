@@ -243,10 +243,22 @@ describe('the server', () => {
 		});
 	}
 
+	test('a server of the project\'s line is told of, not warned about; one of another line is warned about', async () => {
+		await withServer(async (dir) => {
+			const { core, at } = await oldServer(dir);
+			const [major, minor] = core.version.split('.');
+			const module = at('addons/amxmodx/modules/amxts_amxx.dll');
+			for (const [running, warn] of [[`${major}.${minor}.99`, false], [`${major}.${Number(minor) + 1}.0`, true]] as const) {
+				writeFileSync(module, moduleOf(running));
+				expect(serverMismatch(core, dir)).toEqual({ line: `the server runs a newer amxts, ${running}: amxts upgrade updates this project`, warn });
+			}
+		});
+	});
+
 	test('the files of the release go in, the old ones beside them; AMX Mod X loses the old plugin', async () => {
 		await withServer(async (dir) => {
 			const { core, at, files, updated } = await oldServer(dir);
-			expect(serverMismatch(core, dir)).toBe(`the server runs amxts 0.0.9, this project ${core.version} - run amxts upgrade`);
+			expect(serverMismatch(core, dir)).toEqual({ line: `amxts ${core.version} is out for the server (it runs 0.0.9): amxts upgrade puts it in`, warn: true });
 			const outcome = await updateServer(core.api, dir);
 			expect(outcome).toEqual({ ok: true, line: `${updated} 0.0.9 → ${core.version} - restart the server to load it` });
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll'))).toEqual(moduleOf(core.version, '11111111'));
@@ -326,7 +338,7 @@ test('the whole run, as a user runs it: packages, code, build, server and the su
 		write(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'), moduleOf('0.0.9'));
 		const release = releaseFolder(join(dir, 'release'), CORE, { 'amxts_amxx.dll': moduleOf(CORE) });
 
-		expect(amxts(['build'], dir).out).toContain(`▲ the server runs amxts 0.0.9, this project ${CORE} - run amxts upgrade\n`);
+		expect(amxts(['build'], dir).out).toContain(`▲ amxts ${CORE} is out for the server (it runs 0.0.9): amxts upgrade puts it in\n`);
 		const dry = amxts(['upgrade', '--to', CORE, '--dry-run'], dir, { AMXTS_RELEASE_URL: release });
 		expect(dry.out).toContain('task upgrade --report');
 		expect(dry.out).toContain('--dry-run\n');
