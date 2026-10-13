@@ -11,7 +11,7 @@ import process from 'node:process';
 import { describe, expect, test } from 'bun:test';
 import { CLI_API, localCore, VERSION } from '../packages/cli/src/core.mjs';
 import { versionsFor } from '../packages/cli/src/registry.mjs';
-import { serverMismatch, updateServer, withoutHost } from '../packages/cli/src/server-update.mjs';
+import { serverMismatch, updateServer, withAmxtsFirst, withoutHost } from '../packages/cli/src/server-update.mjs';
 import { bumpSpec, packageBumps, summary, upgrade, writeBumps } from '../packages/cli/src/upgrade.mjs';
 import { amxts, CORE, NEXT_CORE, serverOf, standInProject, UPGRADE_REPORT } from './helpers';
 
@@ -216,6 +216,7 @@ describe('the server', () => {
 		write(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'), moduleOf('0.0.9'));
 		write(join(game, 'addons', 'amxmodx', 'configs', 'plugins.ini'), 'admin.amxx\namxts_host.amxx   ; debug\nmenufront.amxx\n');
 		write(join(game, 'addons', 'amxmodx', 'configs', 'plugins-amxts.ini'), 'amxts_host.amxx\n');
+		write(join(game, 'addons', 'amxmodx', 'configs', 'modules.ini'), '; the modules\nmysql\nreapi\namxts_amxx\n');
 		write(join(game, 'addons', 'amxmodx', 'plugins', 'amxts_host.amxx'), 'the old plugin');
 		if (tools) {
 			write(join(game, 'addons', 'amxts', 'tools', 'amxts-compile.exe'), 'old compiler');
@@ -271,6 +272,7 @@ describe('the server', () => {
 			}
 			expect(readFileSync(at('addons/amxmodx/configs/plugins.ini'), 'utf8')).toBe('admin.amxx\nmenufront.amxx\n');
 			expect(['addons/amxmodx/plugins/amxts_host.amxx', 'addons/amxmodx/configs/plugins-amxts.ini'].filter(path => existsSync(at(path)))).toEqual([]);
+			expect(readFileSync(at('addons/amxmodx/configs/modules.ini'), 'utf8')).toBe('; the modules\namxts_amxx\nmysql\nreapi\n');
 			expect(serverMismatch(core, dir)).toBeNull();
 			// Again: nothing to do.
 			expect(await updateServer(core.api, dir)).toEqual({ ok: true, line: `already amxts ${core.version}` });
@@ -310,6 +312,7 @@ describe('the server', () => {
 			const { core, at, updated } = await oldServer(dir);
 			expect((await updateServer(core.api, dir, { dryRun: true })).line).toBe(`${updated} would go from amxts 0.0.9 to ${core.version}`);
 			expect(readFileSync(at('addons/amxmodx/modules/amxts_amxx.dll'))).toEqual(moduleOf('0.0.9'));
+			expect(readFileSync(at('addons/amxmodx/configs/modules.ini'), 'utf8')).toEndWith('amxts_amxx\n');
 			expect(readFileSync(at('addons/amxmodx/configs/plugins.ini'), 'utf8')).toContain('amxts_host.amxx');
 		});
 	});
@@ -320,6 +323,14 @@ describe('the server', () => {
 			writeFileSync(join(dir, '.env'), '');
 			expect(await updateServer(core.api, dir)).toEqual({ ok: true, line: `none in .env; a server in Docker: docker pull ghcr.io/amxts/server:${core.version}` });
 		});
+	});
+
+	test('modules.ini: amxts_amxx goes on the first line, moved or added', () => {
+		expect(withAmxtsFirst('; modules\r\nreapi\r\n>amxts_amxx\r\nfun\r\n')).toBe('; modules\r\namxts_amxx\r\nreapi\r\nfun\r\n');
+		expect(withAmxtsFirst('; modules\namxts\nreapi\n')).toBeNull();
+		expect(withAmxtsFirst('reapi\n; amxts_amxx\n')).toBe('amxts_amxx\nreapi\n; amxts_amxx\n');
+		expect(withAmxtsFirst('; none')).toBe('; none\namxts_amxx\n');
+		expect(withAmxtsFirst('')).toBe('amxts_amxx\n');
 	});
 
 	test('plugins.ini: only a line that loads the host plugin goes', () => {

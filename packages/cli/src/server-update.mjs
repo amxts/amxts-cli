@@ -9,7 +9,8 @@
 // The file it replaces stays beside it, with its version
 // (amxts_amxx.dll.0.1.0). What an older release put into AMX Mod X goes: an
 // `amxts_host.amxx` line of its plugins.ini, that plugin and its list -
-// amxts needs no plugin.
+// amxts needs no plugin. And amxts_amxx goes on the first line of
+// modules.ini: a module listed above it keeps its forwards from amxts plugins.
 //
 // Also the check `amxts dev` and `build` start with: the release the
 // server's module is of, read from the module file (the core's
@@ -56,6 +57,25 @@ export function withoutHost(text) {
 	const lines = text.split(/(?<=\n)/);
 	const kept = lines.filter(line => !/^\s*amxts_host\.amxx\b/i.test(line));
 	return kept.length === lines.length ? null : kept.join('');
+}
+
+/** A line's module in modules.ini, as AMX Mod X reads it: the first word, after a `>`; '' for none. */
+function moduleOfLine(line) {
+	const word = line.trim().replace(/^>\s*/, '').split(/\s/)[0];
+	return word.startsWith(';') ? '' : word;
+}
+
+/** AMX Mod X's modules.ini with `amxts_amxx` as its first module, the line moved or added; null when it is first already. */
+export function withAmxtsFirst(text) {
+	const lines = text.split(/(?<=\n)/).filter(line => line);
+	const ours = line => /^amxts(?:_amxx)?$/i.test(moduleOfLine(line));
+	if (ours(lines.find(line => moduleOfLine(line)) ?? '')) return null;
+	const kept = lines.filter(line => !ours(line));
+	const first = kept.findIndex(line => moduleOfLine(line));
+	const at = first < 0 ? kept.length : first;
+	if (at > 0 && !kept[at - 1].endsWith('\n')) kept[at - 1] += '\n';
+	kept.splice(at, 0, `amxts_amxx${text.includes('\r\n') ? '\r\n' : '\n'}`);
+	return kept.join('');
 }
 
 /** The settings the core's serverSystem() reads, as the build sees them: the environment, else .env. */
@@ -149,11 +169,14 @@ export async function updateServer(api, dir, { dryRun = false, canWrite = writab
 	const cleaned = existsSync(pluginsIni) ? withoutHost(readFileSync(pluginsIni, 'utf8')) : null;
 	const leftovers = LEFTOVERS.map(path => join(game, path)).filter(path => existsSync(path));
 	const tidied = [...(cleaned === null ? [] : [pluginsIni]), ...leftovers].map(slashes).join(', ');
+	const modulesIni = join(game, 'addons', 'amxmodx', 'configs', 'modules.ini');
+	const ordered = existsSync(modulesIni) ? withAmxtsFirst(readFileSync(modulesIni, 'utf8')) : null;
 	const names = changing.map(file => file.path.split(/[\\/]/).pop()).join(', ');
 
 	if (dryRun) {
 		for (const file of changing) log.info(`would put ${file.asset} of ${version} at ${slashes(file.path)}`);
 		if (tidied) log.info(`would take an older amxts's plugin out of ${tidied}`);
+		if (ordered !== null) log.info(`would put amxts_amxx on the first line of ${slashes(modulesIni)}`);
 		return { ok: true, line: changing.length ? `${names} would go from amxts ${before} to ${version}` : `already amxts ${version}` };
 	}
 
@@ -182,6 +205,11 @@ export async function updateServer(api, dir, { dryRun = false, canWrite = writab
 	if (cleaned !== null) writeFileSync(pluginsIni, cleaned);
 	for (const path of leftovers) rmSync(path, { force: true });
 	if (tidied) log.success(`Took an older amxts's plugin out of ${tidied}: amxts needs no plugin`);
-	if (!changing.length) return { ok: true, line: `already amxts ${version}${tidied ? ', the old plugin taken out' : ''}` };
+	if (ordered !== null) {
+		writeFileSync(modulesIni, ordered);
+		log.success(`Put amxts_amxx on the first line of ${slashes(modulesIni)}: a module above it keeps its forwards from amxts plugins`);
+	}
+	const also = [tidied && 'the old plugin taken out', ordered !== null && 'amxts_amxx first in modules.ini'].filter(Boolean).join(', ');
+	if (!changing.length) return { ok: true, line: `already amxts ${version}${also ? `, ${also}` : ''}` };
 	return { ok: true, line: `${names} ${before} → ${version} - restart the server to load it` };
 }
