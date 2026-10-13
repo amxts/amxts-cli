@@ -341,8 +341,15 @@ function camel(values) {
  * Runs a command line: `["build", "--deploy"]`.
  * @param {string[]} argv
  */
+/** The Node.js amxts runs on, at least: npm 10 of Node 22 fails installing a project's test runner. */
+const NODE_MAJOR = 24;
+
 export async function main(argv) {
 	try {
+		// Bun answers for itself: it is not the Node the version names.
+		if (!process.versions.bun && Number(process.versions.node.split('.')[0]) < NODE_MAJOR) {
+			throw new CliError(`amxts needs Node.js ${NODE_MAJOR} or newer - this is ${process.versions.node}`, 'Install the current one from https://nodejs.org, then run the command again.');
+		}
 		const [name, ...rest] = argv;
 		if (!name || name === '--help' || name === '-h' || name === 'help') {
 			const topic = name === 'help' ? rest[0] : undefined;

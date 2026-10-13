@@ -4,6 +4,8 @@
 
 > For cores of the 0.3 line.
 
+amxts needs Node.js 24 or newer, and says so on an older one: on Node 22, npm 10 fails installing a new project's test runner on Linux.
+
 The line about the server's module says that a newer amxts is out and that `amxts upgrade` puts it in - as information while the module is of the project's line, as a warning when it is of another line and will load no plugin ([e5510d1](https://github.com/amxts/amxts-cli/commit/e5510d1)).
 
 ### 👉 Changelog

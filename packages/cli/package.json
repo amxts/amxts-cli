@@ -34,7 +34,7 @@
 		"templates"
 	],
 	"engines": {
-		"node": ">=20.12"
+		"node": ">=24"
 	},
 	"dependencies": {
 		"@clack/prompts": "^1.8.1"
