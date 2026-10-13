@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.1
+
+> For cores of the 0.3 line.
+
+The line about the server's module says that a newer amxts is out and that `amxts upgrade` puts it in - as information while the module is of the project's line, as a warning when it is of another line and will load no plugin ([e5510d1](https://github.com/amxts/amxts-cli/commit/e5510d1)).
+
+### 👉 Changelog
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.3.0...v0.3.1)
+
+### 🩹 Fixes
+
+- **server:** A newer `amxts` for the server, told not warned ([e5510d1](https://github.com/amxts/amxts-cli/commit/e5510d1))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.3.0
 
 > The command for amxts 0.3.
