@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.3.2
+
+> For cores of the 0.3 line.
+
+`amxts upgrade` puts `amxts_amxx` on the first line of the server's `modules.ini`, moving the line up or adding it: a C++ module listed above it keeps its forwards from TypeScript plugins ([16f32cd](https://github.com/amxts/amxts-cli/commit/16f32cd)).
+
+### 👉 Changelog
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.3.1...v0.3.2)
+
+### 🚀 Enhancements
+
+- **upgrade:** `amxts_amxx` first in `modules.ini` ([16f32cd](https://github.com/amxts/amxts-cli/commit/16f32cd))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.3.1
 
 > For cores of the 0.3 line.
