@@ -15,7 +15,7 @@ import process from 'node:process';
 import * as p from '@clack/prompts';
 import { configEntries, loadCatalog, resolveModule, shortName, specFor, withRequired } from './catalog.mjs';
 import { modulesList } from './config.mjs';
-import { bunFor, CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLocalCore, readJson, VERSION } from './core.mjs';
+import { CLI_DIR, CORE_RANGE, coreDirFrom, FROM_SOURCE, loadCore, needLocalCore, readJson, VERSION } from './core.mjs';
 import { ensureIncludes, FETCHED, serverIncludes, targetOf, TARGETS } from './includes.mjs';
 import { LINT_DEPENDENCIES, LINT_FILES, LINT_SCRIPTS } from './lint.mjs';
 import { commandLine, execAmxts, installArgs, installLinked, linkedFolders, PACKAGE_MANAGERS, packageManagerOfAgent, run, runScript, testRunner, versionOf } from './pm.mjs';
@@ -230,12 +230,6 @@ export async function initProject(options) {
 		devDependencies: Object.fromEntries(Object.entries(devDependencies).sort(([a], [b]) => a.localeCompare(b))),
 	}, null, '\t')}\n`);
 	written.push('package.json');
-	if (pm === 'pnpm') {
-		// pnpm stops an install at a dependency's build script nobody approved.
-		// bun's is not needed: amxts runs the binary of its platform package.
-		writeFile(join(root, 'pnpm-workspace.yaml'), '# bun\'s install script is not needed: amxts runs the binary of its platform package.\nallowBuilds:\n  bun: false\n');
-		written.push('pnpm-workspace.yaml');
-	}
 	// Always written, the server's line empty when it was not given: the file
 	// shows where it goes, and amxts dev asks for it.
 	writeFile(join(root, '.env'), `${serverEnv(server ?? '')}${osLine}`);
@@ -268,8 +262,8 @@ export async function initProject(options) {
 		}
 	}
 
-	// The project's core, installed: the server's includes (its own, or the
-	// ones of the target fetched) and the Bun it builds with come with it.
+	// The project's core, installed: the server's includes come with it - its
+	// own, or the ones of the target fetched.
 	let projectCore = null;
 	if (installedOk) {
 		try {
@@ -294,12 +288,10 @@ export async function initProject(options) {
 
 	// The editor config (.amxts/tsconfig.json), which the build writes too:
 	// this command's own prepare, run in the project, with the project's core.
-	if (projectCore && bunFor(projectCore)) {
+	if (projectCore) {
 		const result = await run([process.execPath, join(CLI_DIR, 'bin', 'amxts.mjs'), 'prepare'], { cwd: root, quiet: true });
 		if (result.code === 0) p.log.success(`Prepared the editor config ${c.dim('(.amxts/tsconfig.json)')}`);
 		else p.log.warn(`The editor config was not written: ${c.cyan(`${amxts} prepare`)} in the project says why.`);
-	} else if (projectCore) {
-		p.log.warn(`The Bun that comes with @amxts/core is not there, and amxts builds with it: run ${c.cyan(install)} again, letting ${pm} run bun's install script`);
 	}
 
 	const steps = [

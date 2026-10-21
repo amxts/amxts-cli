@@ -75,7 +75,7 @@ const RULES = [
 			outcome,
 			reloaded: outcome.startsWith('deployed, the server reloaded '),
 			at,
-			// A build the panel started: the time before the core's own count - Bun, the project, the server asked.
+			// A build the panel started: the time before the core's own count - Node, the project, the server asked.
 			boot: feed.started === null ? undefined : Math.max(0, (Date.now() - feed.started) / 1000 - Number(total)),
 		};
 		feed.started = null;

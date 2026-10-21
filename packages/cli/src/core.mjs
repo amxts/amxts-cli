@@ -1,4 +1,5 @@
-// The core a command works with, and Bun, which runs the core's build.
+// The core a command works with, and how its tasks run: on the Node this
+// command runs on.
 //
 // The command is a package of its own, @amxts/cli; the core is the project's
 // - its node_modules/@amxts/core, found from the folder the command runs in.
@@ -26,7 +27,7 @@ export const VERSION = String(CLI_PACKAGE.version);
 /** The cores this command works with: the range a new project asks for. */
 export const CORE_RANGE = '^0.3.0';
 /** The version of `@amxts/core/cli-api` this command speaks. */
-export const CLI_API = 5;
+export const CLI_API = 6;
 
 /**
  * Run from a checkout of the command's repository (npm link, a clone) rather
@@ -45,7 +46,7 @@ export function readJson(path) {
 	}
 }
 
-/** A setting as the build sees it: the environment, else the project's .env (which Bun reads). */
+/** A setting as the build sees it: the environment, else the project's .env (which the tasks read). */
 export function setting(dir, name) {
 	if (process.env[name]) return process.env[name];
 	const env = join(dir, '.env');
@@ -223,9 +224,7 @@ export async function coreTypeScript(from = process.cwd()) {
 }
 
 const BUN_HINT = [
-	'Bun comes with @amxts/core: install the project\'s dependencies again, letting',
-	'the package manager run bun\'s install script. Where it cannot (no package',
-	'for this platform), install Bun yourself and run the command again:',
+	'In a project without Vitest, amxts test runs bun test. Add Vitest, or install Bun:',
 	'  npm install -g bun',
 	process.platform === 'win32' ? '  or: powershell -c "irm bun.sh/install.ps1 | iex"' : '  or: curl -fsSL https://bun.sh/install | bash',
 ].join('\n');
@@ -233,38 +232,15 @@ const BUN_HINT = [
 let pathVersion;
 
 /** The version of a Bun on PATH, or null when there is none. */
-function bunOnPath() {
+export function bunVersion() {
 	pathVersion ??= versionOf('bun');
 	return pathVersion;
 }
 
-/**
- * The Bun the core's tasks and tests run on: the one installed with the core
- * (its cli-api's bunBinary(), from the `bun` package it depends on), else a
- * Bun on PATH, as `bun`; null when there is neither.
- * @param {Core | null} [core]
- * @returns {string | null} the binary, or `bun`
- */
-export function bunFor(core) {
-	const own = core?.api.bunBinary?.();
-	if (own) return own;
-	return bunOnPath() ? 'bun' : null;
-}
-
-/** The version of the Bun bunFor() gives, or null. */
-export function bunVersion(core) {
-	const binary = bunFor(core);
-	if (!binary) return null;
-	if (binary === 'bun') return bunOnPath();
-	const run = spawnSync(binary, ['--version'], { encoding: 'utf8' });
-	return run.status === 0 ? run.stdout.trim() : null;
-}
-
-/** The Bun to run, or an error that says how to get one. */
-export function needBun(core, what = 'builds plugins') {
-	const binary = bunFor(core);
-	if (!binary) throw new CliError(`amxts ${what} with Bun, and there is none: not with @amxts/core, not on PATH`, BUN_HINT);
-	return binary;
+/** A Bun on PATH, for `bun test`, or an error that says how to get one. */
+export function needBun(what = 'runs tests') {
+	if (!bunVersion()) throw new CliError(`amxts ${what} with Bun, and there is none on PATH`, BUN_HINT);
+	return 'bun';
 }
 
 /**
@@ -276,21 +252,14 @@ export function needBun(core, what = 'builds plugins') {
  */
 export function runTask(core, name, args = []) {
 	const result = spawnSync(...taskSpawn(core, name, args, { stdio: 'inherit' }));
-	if (result.error) throw new CliError(`Bun did not start: ${result.error.message}`, BUN_HINT);
+	if (result.error) throw new CliError(`The ${name} task did not start: ${result.error.message}`);
 	return result.status ?? 1;
 }
 
-/** A task as spawn takes it: the file, its arguments (none when it goes through the shell) and the options. */
+/** A task as spawn takes it: this Node, its arguments and the options. */
 function taskSpawn(core, name, args, options) {
-	const task = core.api.task(name, args);
 	const env = { ...process.env, ...(debug() ? { AMXTS_DEBUG: '1' } : {}), ...options.env };
-	if (task.runtime === 'node') return [process.execPath, task.args, { ...options, env }];
-	const binary = needBun(core);
-	// A Bun on PATH goes through the shell on Windows, where it may be
-	// bun.cmd; a path with a space is quoted for it.
-	return binary === 'bun' && process.platform === 'win32'
-		? [commandLine(['bun', ...task.args]), { ...options, shell: true, env }]
-		: [binary, task.args, { ...options, env }];
+	return [process.execPath, core.api.task(name, args).args, { ...options, env }];
 }
 
 /**
@@ -307,7 +276,7 @@ export function startTask(core, name, args, { pipe = false } = {}) {
 		? spawn(...taskSpawn(core, name, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { FORCE_COLOR: process.env.NO_COLOR === undefined ? '1' : '0' } }))
 		: spawn(...taskSpawn(core, name, args, { stdio: 'inherit' }));
 	child.on('error', (error) => {
-		report(new CliError(`Bun did not start: ${error.message}`, BUN_HINT));
+		report(new CliError(`The ${name} task did not start: ${error.message}`));
 		process.exit(1);
 	});
 	return child;

@@ -33,11 +33,10 @@ its `src/cli-api.mjs`:
 | from the cli-api | used by |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | every command that needs the core; `--local` is the default for `module add` when the project's core is a checkout |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'bun' \| 'node', args }`, run by `runTask()` in the project's folder |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'node', args }`, run by `runTask()` on this Node in the project's folder |
 | `localModules()` | `--local`: where the official modules are on this machine |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` is read with the core's parser, so `npm create amxts` does not fetch TypeScript |
 | `toolchain()` | `info` |
-| `bunBinary()` | `src/core.mjs`: the Bun the tasks and `test` run on |
 | `includeSources()` | `src/includes.mjs`: the ReAPI release a project without a server fetches, with its sha256 |
 | `serverSystem(argv, env)`, `describeSystem()` | `info`: the system the build compiles for, and how it was decided; optional - a core without them builds for this machine |
 | `release(system)`, `moduleVersion(file)` | `src/server-update.mjs`: the server step of `upgrade` - the release's files, their manifest and where they go - and the line `dev` and `build` start with when the server's module is of another release |
@@ -45,27 +44,20 @@ its `src/cli-api.mjs`:
 `init` (a project or a module), `--help`, `--version` and `info` outside a
 project need no core.
 
-## Node in front, Bun behind
+## On Node
 
 `src/` is plain JavaScript (ESM, JSDoc types) that Node runs as it is: npm,
 pnpm and yarn start it with Node, and nothing in it needs a build step.
 
-- **On Node**: `init`, `module add` / `list`, `info`, `--help`. They read
-  `amxts.config.ts` with the TypeScript parser, never by running it, so they
-  work without Bun.
-- **On Bun**: the core's `prepare`, `build`, `check` and `upgrade` tasks - `runTask()`
-  runs them and passes `--debug` on as `AMXTS_DEBUG=1`. `typecheck` runs the
-  `prepare` task, then `tsc` under Node. `test` runs the project's Vitest
-  (`vitest run`, on Node) when the project has `vitest` installed, else
-  `bun test`, with the arguments it was given.
-
-The Bun is the one installed with the core: `@amxts/core` depends on the
-`bun` package, and its cli-api's `bunBinary()` finds the binary - in the
-platform package (`@oven/bun-<os>-<arch>`), which npm, pnpm, yarn and bun
-install as an optional dependency without running a script, else where
-`bun`'s postinstall put it. `bunFor()` (`src/core.mjs`) takes it, a Bun on
-PATH only without it, and `needBun()` says what to do when there is neither.
-A project needs no Bun of its own.
+- `init`, `module add` / `list`, `info`, `--help` run in the command. They
+  read `amxts.config.ts` with the TypeScript parser, never by running it.
+- The core's `prepare`, `build`, `check` and `upgrade` tasks run on the same
+  Node, in a process of their own - `runTask()` starts them and passes
+  `--debug` on as `AMXTS_DEBUG=1`. `typecheck` runs the `prepare` task, then
+  `tsc`. `test` runs the project's Vitest (`vitest run`) when the project has
+  `vitest` installed, else `bun test`, with the arguments it was given: only
+  then is Bun needed, a Bun on PATH, and `needBun()` (`src/core.mjs`) says how
+  to get one.
 
 ## Files
 
@@ -153,10 +145,6 @@ chosen. `package.json` and `.env` are written by the code, not the
 template; `package.json` has `postinstall: amxts prepare`, so the editor
 config in `.amxts/` is written after every install and is not committed.
 After its own install `init` runs this command's `prepare` in the project.
-With pnpm it also writes `pnpm-workspace.yaml` with `allowBuilds: { bun:
-false }`: pnpm stops an install at a dependency's build script nobody
-approved, and bun's is not needed - the binary comes from its platform
-package.
 
 ## The server's includes
 

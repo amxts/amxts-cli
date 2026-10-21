@@ -51,10 +51,11 @@ builds, deploys, type-checks and tests. This repository has two packages:
 
 ## Requirements
 
-- [Node.js](https://nodejs.org) 20.12+ - the command runs on it.
+- [Node.js](https://nodejs.org) 24+ - the command runs on it.
 
-Building, type-checking and testing run on [Bun](https://bun.sh), which
-comes with `@amxts/core` as a dependency: nothing to install for it.
+Building, type-checking and the tests on Vitest run on the same Node. A
+project made with bun tests with `bun test`, on the [Bun](https://bun.sh) it
+was made with.
 
 ## Usage
 
@@ -112,5 +113,5 @@ npm link -w @amxts/cli -w create-amxts   # amxts and create-amxts on the PATH, f
 ```
 
 [CONTRIBUTING.md](CONTRIBUTING.md) explains how the command is built: the
-command and the core, Node in front and Bun behind, the starters, `--local`
+command and the core, what runs on Node, the starters, `--local`
 and the tests.

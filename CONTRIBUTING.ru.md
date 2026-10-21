@@ -33,11 +33,10 @@
 | из cli-api | чем пользуется |
 | --- | --- |
 | `version`, `cliApi`, `fromSource` | каждая команда, которой нужно ядро; `--local` — поведение `module add` по умолчанию, когда ядро проекта — рабочая копия |
-| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'bun' \| 'node', args }`, их запускает `runTask()` в папке проекта |
+| `task(name, args)` | `build`, `dev` (`build --deploy --watch`), `typecheck`, `check`, `prepare`, `upgrade` (`--report <file>`, `--dry-run`): `{ runtime: 'node', args }`, их запускает `runTask()` на этом же Node в папке проекта |
 | `localModules()` | `--local`: где официальные модули лежат на этой машине |
 | `typescript()` | `src/config.mjs`: `amxts.config.ts` читается парсером ядра, поэтому `npm create amxts` не тянет TypeScript |
 | `toolchain()` | `info` |
-| `bunBinary()` | `src/core.mjs`: Bun, на котором работают задачи и `test` |
 | `includeSources()` | `src/includes.mjs`: релиз ReAPI, который скачивает проект без сервера, с его sha256 |
 | `serverSystem(argv, env)`, `describeSystem()` | `info`: для какой системы собирает сборка и откуда это известно; необязательны - ядро без них собирает для этой машины |
 | `release(system)`, `moduleVersion(file)` | `src/server-update.mjs`: шаг сервера в `upgrade` — файлы выпуска, их манифест и куда они кладутся — и строка, с которой начинают `dev` и `build`, когда модуль сервера из другого выпуска |
@@ -45,27 +44,19 @@
 `init` (проект или модуль), `--help`, `--version` и `info` вне проекта ядра
 не требуют.
 
-## Node впереди, Bun позади
+## На Node
 
 `src/` — обычный JavaScript (ESM, типы в JSDoc), который Node запускает как
 есть: npm, pnpm и yarn стартуют его Node'ом, и ничему в нём не нужна сборка.
 
-- **На Node**: `init`, `module add` / `list`, `info`, `--help`. Они читают
-  `amxts.config.ts` парсером TypeScript, никогда не выполняя его, поэтому
-  работают без Bun.
-- **На Bun**: задачи ядра `prepare`, `build`, `check` и `upgrade` — `runTask()`
-  запускает их и передаёт `--debug` дальше как `AMXTS_DEBUG=1`. `typecheck`
-  запускает задачу `prepare`, затем `tsc` под Node. `test` сам запускает
-  Vitest проекта (`vitest run`, на Node), когда в проекте установлен `vitest`,
-  иначе `bun test`, с переданными аргументами.
-
-Bun — тот, что установлен с ядром: `@amxts/core` зависит от пакета `bun`, и
-`bunBinary()` из его cli-api находит бинарник — в платформенном пакете
-(`@oven/bun-<os>-<arch>`), который npm, pnpm, yarn и bun ставят как
-необязательную зависимость без всяких скриптов, иначе там, куда его положил
-postinstall `bun`. `bunFor()` (`src/core.mjs`) берёт его, Bun из PATH — только
-без него, а `needBun()` говорит, что делать, когда нет ни того, ни другого.
-Своего Bun проекту не нужно.
+- `init`, `module add` / `list`, `info`, `--help` работают в самой команде.
+  Они читают `amxts.config.ts` парсером TypeScript, никогда не выполняя его.
+- Задачи ядра `prepare`, `build`, `check` и `upgrade` идут на том же Node, в
+  своём процессе — `runTask()` запускает их и передаёт `--debug` дальше как
+  `AMXTS_DEBUG=1`. `typecheck` запускает задачу `prepare`, затем `tsc`.
+  `test` запускает Vitest проекта (`vitest run`), когда в проекте установлен
+  `vitest`, иначе `bun test`, с переданными аргументами: только тогда нужен
+  Bun, из PATH, и `needBun()` (`src/core.mjs`) говорит, как его поставить.
 
 ## Файлы
 
@@ -153,10 +144,7 @@ Windows, поэтому `?`, `p` и `e` открывают своё окно н�
 menu-core. `package.json` и `.env` пишет код, а не шаблон; в `package.json`
 есть `postinstall: amxts prepare`, так что конфиг редактора в `.amxts/`
 пишется после каждой установки и не коммитится. После своей установки `init`
-запускает `prepare` этой команды в проекте. С pnpm он ещё пишет
-`pnpm-workspace.yaml` с `allowBuilds: { bun: false }`: pnpm останавливает
-установку на скрипте сборки зависимости, который никто не разрешил, а скрипт
-bun не нужен — бинарник берётся из его платформенного пакета.
+запускает `prepare` этой команды в проекте.
 
 ## Include сервера
 

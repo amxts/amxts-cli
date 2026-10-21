@@ -6,7 +6,7 @@ import { release } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
 import { readConfigModules } from './config.mjs';
-import { bunFor, bunVersion, CLI_DIR, installedCore, readJson, setting, VERSION } from './core.mjs';
+import { bunVersion, CLI_DIR, installedCore, readJson, setting, VERSION } from './core.mjs';
 import { detectPackageManager, versionOf } from './pm.mjs';
 import { serverFolderOrNull } from './server.mjs';
 import { c, CliError } from './ui.mjs';
@@ -57,13 +57,12 @@ export async function info() {
 	const modules = found ? await readConfigModules(dir) : null;
 	const server = setting(dir, 'AMXTS_SERVER');
 	const system = serverSystem(found, dir, server);
-	const bun = bunFor(found);
-	const bunV = bunVersion(found);
+	const bun = bunVersion();
 
 	const rows = [
 		['Operating system', `${process.platform === 'win32' ? 'Windows' : process.platform} ${release()} (${process.arch})`],
 		['Node.js', process.version.replace(/^v/, '')],
-		['Bun', bunV ? `${bunV} ${c.dim(bun === 'bun' ? '(on PATH)' : bun)}` : c.red('none - not with @amxts/core, not on PATH; the build needs it')],
+		['Bun', bun ? `${bun} ${c.dim('(on PATH)')}` : c.dim('none - only amxts test in a project without Vitest needs it')],
 		['Package manager', `${pm} ${versionOf(pm) ?? c.red('not installed')}`],
 		['@amxts/cli', `${VERSION} ${c.dim(CLI_DIR)}`],
 		['@amxts/core', found ? `${found.version} ${c.dim(found.dir)}` : problem],

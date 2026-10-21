@@ -255,8 +255,7 @@ describe('the command line', () => {
 			expect(readFileSync(join(root, '.env'), 'utf8')).toMatch(/^AMXTS_SERVER=$/m);
 			for (const file of ['.oxlintrc.json', '.oxfmtrc.json', '.gitattributes']) expect(existsSync(join(root, file))).toBe(false);
 			expect(readFileSync(join(root, 'README.md'), 'utf8')).toContain('`pnpm dev`');
-			// pnpm is told bun's install script is not needed, so it does not stop the install.
-			expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toContain('allowBuilds:');
+			expect(existsSync(join(root, 'pnpm-workspace.yaml'))).toBe(false);
 			expect(run.out).toContain('pnpm install');
 		});
 	});

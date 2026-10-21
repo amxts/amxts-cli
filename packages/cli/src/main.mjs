@@ -5,8 +5,8 @@
 //
 // It runs on Node. Commands that make or change a project (init, module,
 // info) run here; the ones that compile (build, dev, typecheck, check,
-// prepare) are tasks of the project's core, which runs them on Bun
-// (core.mjs); test runs the project's Vitest, or bun test.
+// prepare) are tasks of the project's core, run on this Node (core.mjs);
+// test runs the project's Vitest, or bun test.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import process from 'node:process';
@@ -205,12 +205,13 @@ export const COMMANDS = {
 		passThrough: true,
 		examples: ['amxts test', 'amxts test hello', 'amxts test --watch'],
 		async run({ raw }) {
-			const core = await projectCore();
+			// The tests run on the project's core: one this command can drive.
+			await projectCore();
 			// A project with Vitest tests on Node; any other on bun test.
 			const vitest = join(needProject(), 'node_modules', 'vitest', 'vitest.mjs');
 			const result = await run(existsSync(vitest)
 				? [process.execPath, vitest, ...(raw.includes('--watch') ? [] : ['run']), ...raw]
-				: [needBun(core, 'runs tests'), 'test', ...raw]);
+				: [needBun(), 'test', ...raw]);
 			process.exitCode = result.code;
 		},
 	},

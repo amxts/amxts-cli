@@ -93,9 +93,7 @@ export function standInProject(dir: string, version: string, api?: number, env =
 		`export const version = ${JSON.stringify(version)};`,
 		`export const cliApi = ${api};`,
 		'export const fromSource = false;',
-		'export const task = (name, args = []) => ({ runtime: name === "build" ? "bun" : "node", args: [fileURLToPath(new URL("./task.mjs", import.meta.url)), name, ...args] });',
-		// Its Bun is the runtime these tests run on, by its path: not a Bun on PATH.
-		`export const bunBinary = () => ${JSON.stringify(process.execPath)};`,
+		'export const task = (name, args = []) => ({ runtime: "node", args: [fileURLToPath(new URL("./task.mjs", import.meta.url)), name, ...args] });',
 		// The TypeScript amxts.config.ts is read with: this repository's.
 		`export const typescript = () => createRequire(${JSON.stringify(join(ROOT, 'package.json'))})("typescript");`,
 		// A Windows server; its release is the folder AMXTS_RELEASE_URL names, with the module only.

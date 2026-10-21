@@ -129,6 +129,6 @@ test('the core on this machine: the one the checkout links, driven through its c
 	expect(core).not.toBeNull();
 	expect(satisfies(core!.version)).toBe(true);
 	expect(core!.api.cliApi).toBe(CLI_API);
-	expect(core!.api.task('build', ['--deploy']).runtime).toBe('bun');
+	expect(core!.api.task('build', ['--deploy']).runtime).toBe('node');
 	expect(Object.keys(core!.api.localModules())).toEqual(expect.arrayContaining(['@amxts/config-core', '@amxts/menu-core']));
 });
