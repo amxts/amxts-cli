@@ -45,6 +45,21 @@
 		"requires": ["@amxts/config-core"]
 	},
 	{
+		"name": "perms",
+		"npm": "@amxts/perms",
+		"repo": "amxts/perms",
+		"description": "Permissions and groups in place of admin.amxx, with a web editor",
+		"category": "admin",
+		"type": "official",
+		"logo": "https://raw.githubusercontent.com/amxts/perms/HEAD/assets/logo.svg",
+		"maintainers": [
+			{
+				"github": "kukson777"
+			}
+		],
+		"requires": ["@amxts/config-core"]
+	},
+	{
 		"name": "resemiclip",
 		"npm": "@amxts/resemiclip",
 		"repo": "amxts/resemiclip",
