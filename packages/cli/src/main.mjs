@@ -166,13 +166,14 @@ export const COMMANDS = {
 	},
 	build: {
 		description: 'Build the plugins and the modules into outDir (dist/), with plugins.ini',
-		usage: 'amxts build [--deploy] [--watch] [--os windows|linux]',
+		usage: 'amxts build [--deploy] [--watch] [--os windows|linux] [--against <module file>]',
 		flags: {
 			deploy: { type: 'boolean', description: 'Also copy them to AMXTS_SERVER and reload the server' },
 			watch: { type: 'boolean', description: 'Build again on every save - for a server that reads dist/ itself, such as the Docker one' },
 			os: OS_FLAG,
+			against: { type: 'string', value: 'file', description: 'A server\'s module (amxts_amxx_i386.so, amxts_amxx.dll): say whether it loads the built plugins, and what it lacks; nothing is deployed when it would refuse one' },
 		},
-		examples: ['amxts build', 'amxts build --deploy', 'amxts build --os linux', 'amxts build --os linux --watch'],
+		examples: ['amxts build', 'amxts build --deploy', 'amxts build --os linux', 'amxts build --os linux --watch', 'amxts build --os linux --against amxts_amxx_i386.so'],
 		async run({ values }) {
 			const os = osArgs(values);
 			const core = await projectCore();
@@ -181,7 +182,10 @@ export const COMMANDS = {
 			warnServer(core, os);
 			if (values.deploy) await ensureServer(needProject(), detectPackageManager());
 			await prepare(core, { quiet: true });
-			runTaskOrExit(core, 'build', [...(values.deploy ? ['--deploy'] : []), ...(values.watch ? ['--watch'] : []), ...os]);
+			// A core without it would build without the check.
+			if (values.against !== undefined && !core.api.buildAgainst) throw new CliError(`--against: @amxts/core ${core.version} does not check plugins against a module`, 'Update the project\'s core: npm install @amxts/core@latest');
+			const against = values.against === undefined ? [] : ['--against', values.against];
+			runTaskOrExit(core, 'build', [...(values.deploy ? ['--deploy'] : []), ...(values.watch ? ['--watch'] : []), ...os, ...against]);
 		},
 	},
 	typecheck: {
