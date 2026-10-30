@@ -18,6 +18,8 @@ The module is the server's `addons/amxmodx/modules/amxts_amxx_i386.so` (or `amxt
 
 `amxts module add perms` finds [@amxts/perms](https://github.com/amxts/perms) - groups and permissions with an editor in the browser - in the catalog the command carries ([31eace9](https://github.com/amxts/amxts-cli/commit/31eace9)).
 
+The official `resemiclip` module is `semiclip` now, `@amxts/semiclip`: `npx amxts upgrade` puts it in place of `@amxts/resemiclip` in `package.json` and `amxts.config.ts`, and `amxts module add resemiclip` adds it under its new name ([043ba70](https://github.com/amxts/amxts-cli/commit/043ba70)).
+
 ### 👉 Changelog
 
 [compare changes](https://github.com/amxts/amxts-cli/compare/v0.3.2...v0.3.3)
@@ -27,6 +29,7 @@ The module is the server's `addons/amxmodx/modules/amxts_amxx_i386.so` (or `amxt
 - The core's tasks on Node, Bun only for bun test ([475222b](https://github.com/amxts/amxts-cli/commit/475222b))
 - **modules:** Perms in the bundled catalog ([31eace9](https://github.com/amxts/amxts-cli/commit/31eace9))
 - **build:** `--against` checks plugins against a module ([90afd41](https://github.com/amxts/amxts-cli/commit/90afd41))
+- **upgrade:** @amxts/resemiclip becomes @amxts/semiclip ([043ba70](https://github.com/amxts/amxts-cli/commit/043ba70))
 
 ### ❤️ Contributors
 
