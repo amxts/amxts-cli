@@ -25,7 +25,7 @@ export const CLI_PACKAGE = readJson(join(CLI_DIR, 'package.json'));
 export const VERSION = String(CLI_PACKAGE.version);
 
 /** The cores this command works with: the range a new project asks for. */
-export const CORE_RANGE = '^0.3.0';
+export const CORE_RANGE = '^0.3.3';
 /** The version of `@amxts/core/cli-api` this command speaks. */
 export const CLI_API = 6;
 
