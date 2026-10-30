@@ -18,6 +18,9 @@ import { CliError } from './ui.mjs';
 
 export const OFFICIAL_SCOPE = '@amxts';
 
+/** The official modules that took another name: the new one, by the old. */
+export const RENAMED = { '@amxts/resemiclip': '@amxts/semiclip' };
+
 /** The registry's modules.json: CI rebuilds it on every change to the catalog. */
 export const CATALOG_URL = 'https://raw.githubusercontent.com/amxts/modules/main/modules.json';
 
@@ -103,8 +106,9 @@ export function resolveModule(arg, { catalog = [], local = false, localModules =
 		return { name: json.name, dir, tagline: taglineOf(dir), requires: requiresOf(json), listed: catalog.some(each => each.npm === json.name) };
 	}
 
-	const listed = catalog.find(each => each.name === arg || each.npm === arg);
-	const name = listed?.npm ?? arg;
+	const renamed = RENAMED[arg] ?? RENAMED[`${OFFICIAL_SCOPE}/${arg}`];
+	const listed = catalog.find(each => each.name === arg || each.npm === arg || each.npm === renamed);
+	const name = listed?.npm ?? renamed ?? arg;
 	if (!/^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(?:@.+)?$/i.test(name)) {
 		throw new CliError(`"${arg}" is not a package name`, 'A module is named as npm names it: menu-core, @amxts/menu-core, @you/greeter, or a folder: ../greeter');
 	}

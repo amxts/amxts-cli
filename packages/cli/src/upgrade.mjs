@@ -6,8 +6,10 @@
 //    to, or to --to; every other @amxts/ package in package.json - the
 //    official modules, the command - to its own newest version that works
 //    with that core (registry.mjs), in the style the project writes its
-//    ranges (`^0.1.0` → `^0.2.0`); then the project's own package manager
-//    installs.
+//    ranges (`^0.1.0` → `^0.2.0`); an official module that took another
+//    name goes in under the new one, in package.json and amxts.config.ts
+//    (`@amxts/resemiclip` is `@amxts/semiclip`); then the project's own
+//    package manager installs.
 // 2. The code: the new core's rewrites (its `upgrade` task), each change listed.
 // 3. The build: `amxts build`.
 // 4. The server in AMXTS_SERVER: its module, and its compiler where it has
@@ -20,11 +22,13 @@
 // project's new one: `amxts upgrade --to <version>` again, with the versions
 // it started from in AMXTS_UPGRADE_FROM.
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
+import { RENAMED } from './catalog.mjs';
+import { CONFIG_FILE } from './config.mjs';
 import { coreDirFrom, loadCore, needProject, readJson, runTask, satisfies, VERSION } from './core.mjs';
 import { prepare } from './includes.mjs';
 import { commandLine, detectPackageManager, installArgs, installLinked, linkedFolders } from './pm.mjs';
@@ -75,12 +79,17 @@ export function packageBumps(pkg, versions) {
 	});
 }
 
+const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /** package.json's text with the specs moved, everything else as it was written. */
 export function writeBumps(text, bumps) {
-	return bumps.filter(bump => bump.to && bump.to !== bump.spec).reduce((out, bump) => {
-		const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		return out.replace(new RegExp(`("${escape(bump.name)}"\\s*:\\s*")${escape(bump.spec)}"`, 'g'), `$1${bump.to}"`);
-	}, text);
+	return bumps.filter(bump => bump.to && bump.to !== bump.spec)
+		.reduce((out, bump) => out.replace(new RegExp(`("${escape(bump.name)}"\\s*:\\s*")${escape(bump.spec)}"`, 'g'), `$1${bump.to}"`), text);
+}
+
+/** A text - package.json, amxts.config.ts - with each official module that took another name, in its quotes, put to the new one. */
+export function renameModules(text) {
+	return Object.entries(RENAMED).reduce((out, [from, to]) => out.replace(new RegExp(`(["'])${escape(from)}\\1`, 'g'), `$1${to}$1`), text);
 }
 
 /** The version of a package the project has installed, or null. */
@@ -179,18 +188,25 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 		return outcome;
 	}
 
-	const pkg = readJson(join(dir, 'package.json')) ?? {};
+	const listed = readJson(join(dir, 'package.json')) ?? {};
+	// A command that hands the rest on has renamed them already.
+	const renamed = handedFrom ? [] : amxtsPackages(listed).map(each => each.name).filter(name => RENAMED[name]);
+	const pkg = renamed.length ? JSON.parse(renameModules(JSON.stringify(listed))) : listed;
+	const oldName = Object.fromEntries(renamed.map(name => [RENAMED[name], name]));
 	const { version, versions } = handedFrom ? installed(dir, pkg, VERSION_TEXT.exec(to)[1]) : await newest(registry, dir, pkg, to ? VERSION_TEXT.exec(to)[1] : 'latest');
 	const bumps = packageBumps(pkg, versions);
-	const from = handedFrom ?? Object.fromEntries(bumps.map(bump => [bump.name, installedVersion(dir, bump.name)]));
+	const from = handedFrom ?? Object.fromEntries(bumps.map(bump => [bump.name, installedVersion(dir, oldName[bump.name] ?? bump.name)]));
 	const moving = bumps.filter(bump => bump.to && (bump.to !== bump.spec || from[bump.name] !== bump.version));
 
 	if (!handedFrom) {
 		log.step(`Packages: amxts ${version}${to ? '' : c.dim(' (latest)')}`);
+		for (const name of renamed) log.info(`${name} is ${RENAMED[name]} now: ${dryRun ? 'it would go' : 'it goes'} into package.json and ${CONFIG_FILE} under the new name`);
 		for (const bump of bumps) log.info(`${bump.name}  ${bump.spec} ${!bump.to ? c.dim('(left as it is)') : moving.includes(bump) ? `${c.dim('→')} ${bump.to}` : c.dim('(already)')}`);
-		if (!dryRun && moving.length) {
+		if (!dryRun && (moving.length || renamed.length)) {
 			const path = join(dir, 'package.json');
-			writeFileSync(path, writeBumps(readFileSync(path, 'utf8'), bumps));
+			writeFileSync(path, writeBumps(renameModules(readFileSync(path, 'utf8')), bumps));
+			const config = join(dir, CONFIG_FILE);
+			if (renamed.length && existsSync(config)) writeFileSync(config, renameModules(readFileSync(config, 'utf8')));
 			await install(dir, detectPackageManager(dir));
 		}
 	}

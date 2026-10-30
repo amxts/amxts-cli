@@ -79,11 +79,11 @@ describe('amxts.config.ts', () => {
 		expect((await addToConfig('export default defineConfig({\n\tmodules: [],\n});\n', entries)).text).toBe(`export default defineConfig({\n${both}});\n`);
 		expect((await addToConfig('export default defineConfig({});\n', entries)).text).toBe(`export default defineConfig({\n${both}});\n`);
 		// On one line: written one per line, the ones there first.
-		expect((await addToConfig(`export default defineConfig({\n\tmodules: ['@amxts/resemiclip'],\n});\n`, entries)).text)
-			.toBe(`export default defineConfig({\n\tmodules: [\n\t\t'@amxts/resemiclip',\n\t\t'@amxts/menu-core',\n\t\t'@amxts/config-core', // needed by menu-core\n\t],\n});\n`);
+		expect((await addToConfig(`export default defineConfig({\n\tmodules: ['@amxts/semiclip'],\n});\n`, entries)).text)
+			.toBe(`export default defineConfig({\n\tmodules: [\n\t\t'@amxts/semiclip',\n\t\t'@amxts/menu-core',\n\t\t'@amxts/config-core', // needed by menu-core\n\t],\n});\n`);
 		// One per line: after the last one's comma and comment.
-		const listed = 'export default defineConfig({\n\tmodules: [\n\t\t"@amxts/resemiclip" // semiclip\n\t],\n});\n';
-		expect((await addToConfig(listed, entries)).text).toBe(listed.replace('"@amxts/resemiclip" // semiclip', '"@amxts/resemiclip", // semiclip\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core'));
+		const listed = 'export default defineConfig({\n\tmodules: [\n\t\t"@amxts/semiclip" // semiclip\n\t],\n});\n';
+		expect((await addToConfig(listed, entries)).text).toBe(listed.replace('"@amxts/semiclip" // semiclip', '"@amxts/semiclip", // semiclip\n\t\t"@amxts/menu-core",\n\t\t"@amxts/config-core", // needed by menu-core'));
 	});
 
 	test('a module listed already is not listed twice, and no comment is needed then', async () => {
@@ -109,6 +109,8 @@ describe('modules by name', () => {
 		expect(resolveModule('votes', { catalog })).toMatchObject({ name: 'amxts-votes', tagline: 'Map and kick votes', listed: true });
 		expect(resolveModule('amxts-votes', { catalog }).listed).toBe(true);
 		expect(resolveModule('@you/greeter', { catalog })).toMatchObject({ name: '@you/greeter', listed: false });
+		// An official module by the name it had: the one it took.
+		for (const old of ['resemiclip', '@amxts/resemiclip']) expect(resolveModule(old, { catalog })).toMatchObject({ name: '@amxts/semiclip', listed: true });
 		expect(() => resolveModule('Not A Name', { catalog })).toThrow('is not a package name');
 	});
 

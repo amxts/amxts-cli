@@ -152,16 +152,38 @@ describe('the packages', () => {
 		}
 	});
 
+	test('an official module that took another name goes in under the new one: package.json, amxts.config.ts', async () => {
+		await inProject(async (dir) => {
+			standInProject(dir, CORE, CLI_API);
+			const text = (core: string, name: string, spec: string) => `{\n\t"devDependencies": {\n\t\t"@amxts/core": "^${core}",\n\t\t"${name}": "${spec}"\n\t}\n}\n`;
+			writeFileSync(join(dir, 'package.json'), text(CORE, '@amxts/resemiclip', '^0.1.3'));
+			const config = (name: string) => `export default defineConfig({\n\tmodules: ["${name}"],\n});\n`;
+			writeFileSync(join(dir, 'amxts.config.ts'), config('@amxts/resemiclip'));
+			write(join(dir, 'node_modules', '@amxts', 'resemiclip', 'package.json'), JSON.stringify({ name: '@amxts/resemiclip', version: '0.1.3' }));
+			const registry = registryOf({ '@amxts/core': [{ version: CORE }, { version: PATCH }], '@amxts/semiclip': [{ version: '0.2.0', peerDependencies: { '@amxts/core': `^${CORE}` } }] });
+
+			// A dry run says so and changes nothing.
+			const dry = await upgrade({ dryRun: true, server: false }, { dir, registry, install: async () => {} });
+			expect(dry!.packages[1]).toEqual({ name: '@amxts/semiclip', spec: '^0.1.3', from: '0.1.3', version: '0.2.0', to: '^0.2.0' });
+			expect(readFileSync(join(dir, 'amxts.config.ts'), 'utf8')).toBe(config('@amxts/resemiclip'));
+
+			const outcome = await upgrade({ server: false }, { dir, registry, install: async () => coreVersion(dir, PATCH) });
+			expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text(PATCH, '@amxts/semiclip', '^0.2.0'));
+			expect(readFileSync(join(dir, 'amxts.config.ts'), 'utf8')).toBe(config('@amxts/semiclip'));
+			expect(outcome!.packages[1]).toEqual({ name: '@amxts/semiclip', spec: '^0.1.3', from: '0.1.3', version: '0.2.0', to: '^0.2.0' });
+		});
+	});
+
 	test('a core the registry does not have, or a module with no version for it, changes nothing', async () => {
 		await inProject(async (dir) => {
 			standInProject(dir, CORE, CLI_API);
-			const text = `{ "devDependencies": { "@amxts/core": "^${CORE}", "@amxts/resemiclip": "^0.1.0" } }\n`;
+			const text = `{ "devDependencies": { "@amxts/core": "^${CORE}", "@amxts/semiclip": "^0.1.0" } }\n`;
 			writeFileSync(join(dir, 'package.json'), text);
-			const registry = registryOf({ '@amxts/core': [{ version: CORE }, { version: PATCH }], '@amxts/resemiclip': [{ version: '0.1.0', peerDependencies: { '@amxts/core': '^0.0.1' } }] });
+			const registry = registryOf({ '@amxts/core': [{ version: CORE }, { version: PATCH }], '@amxts/semiclip': [{ version: '0.1.0', peerDependencies: { '@amxts/core': '^0.0.1' } }] });
 			const install = async () => {
 				throw new Error('installed');
 			};
-			await expect(upgrade({ to: PATCH }, { dir, registry, install })).rejects.toThrow(`@amxts/resemiclip has no version for @amxts/core ${PATCH}`);
+			await expect(upgrade({ to: PATCH }, { dir, registry, install })).rejects.toThrow(`@amxts/semiclip has no version for @amxts/core ${PATCH}`);
 			await expect(upgrade({ to: '9.9.9' }, { dir, registry, install })).rejects.toThrow('@amxts/core 9.9.9 is not on the registry');
 			expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text);
 		});

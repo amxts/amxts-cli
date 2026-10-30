@@ -60,13 +60,13 @@
 		"requires": ["@amxts/config-core"]
 	},
 	{
-		"name": "resemiclip",
-		"npm": "@amxts/resemiclip",
-		"repo": "amxts/resemiclip",
-		"description": "Semiclip over the ReSemiclip module - who walks through whom, as a rule over two players",
+		"name": "semiclip",
+		"npm": "@amxts/semiclip",
+		"repo": "amxts/semiclip",
+		"description": "Who walks through whom, as a rule over two players",
 		"category": "gameplay",
 		"type": "official",
-		"logo": "https://raw.githubusercontent.com/amxts/resemiclip/HEAD/assets/logo.svg",
+		"logo": "https://raw.githubusercontent.com/amxts/semiclip/HEAD/assets/logo.svg",
 		"maintainers": [
 			{
 				"github": "kukson777"
