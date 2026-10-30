@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.3.3
+
+> For the 0.3.3 core. It drives no older core, and a 0.3.2 command drives no 0.3.3 core: update both, the command first, then `npx amxts upgrade`.
+
+Every task of the core - `build`, `dev`, `prepare`, `check`, `upgrade` - runs on its own Node, and a project no longer installs Bun. The command takes a Bun from `PATH` only for `bun test`, in a project without Vitest, and says how to get one there. `amxts info` shows that Bun ([475222b](https://github.com/amxts/amxts-cli/commit/475222b)).
+
+#### 🔎 A plugin checked against a server's module
+
+Before an upload, `--against` checks the built plugins against the module the server runs, read from its file. It names every plugin the module would refuse, with the imports the module lacks, and with `--deploy` nothing is deployed then:
+
+```sh
+npx amxts build --os linux --against amxts_amxx_i386.so
+```
+
+The module is the server's `addons/amxmodx/modules/amxts_amxx_i386.so` (or `amxts_amxx.dll`) ([90afd41](https://github.com/amxts/amxts-cli/commit/90afd41)).
+
+`amxts module add perms` finds [@amxts/perms](https://github.com/amxts/perms) - groups and permissions with an editor in the browser - in the catalog the command carries ([31eace9](https://github.com/amxts/amxts-cli/commit/31eace9)).
+
+### 👉 Changelog
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.3.2...v0.3.3)
+
+### 🚀 Enhancements
+
+- The core's tasks on Node, Bun only for bun test ([475222b](https://github.com/amxts/amxts-cli/commit/475222b))
+- **modules:** Perms in the bundled catalog ([31eace9](https://github.com/amxts/amxts-cli/commit/31eace9))
+- **build:** `--against` checks plugins against a module ([90afd41](https://github.com/amxts/amxts-cli/commit/90afd41))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.3.2
 
 > For cores of the 0.3 line.
