@@ -262,17 +262,18 @@ export const COMMANDS = {
 	},
 	upgrade: {
 		description: 'Move the project to the latest amxts: its packages, its code, the build and the server',
-		usage: 'amxts upgrade [--to <version>] [--no-server] [--server-only] [--dry-run]',
+		usage: 'amxts upgrade [--to <version>] [--no-build] [--no-server] [--server-only] [--dry-run]',
 		flags: {
 			to: { type: 'string', value: 'version', description: 'The version to move to (the latest on the registry by default)' },
+			build: { type: 'boolean', description: 'Build the project once its code is upgraded: every plugin and module (--no-build to leave it)' },
 			server: { type: 'boolean', description: 'Update the server in AMXTS_SERVER: its module, from the release (--no-server to leave it)' },
 			serverOnly: { type: 'boolean', description: 'Only update the server - once it is stopped, when the upgrade found it running' },
-			dryRun: { type: 'boolean', description: 'Say what would change, and change nothing' },
+			dryRun: { type: 'boolean', description: 'Say what would change and whether it would build, and change nothing' },
 		},
-		examples: ['amxts upgrade', 'amxts upgrade --dry-run', 'amxts upgrade --to 0.2.0 --no-server', 'amxts upgrade --server-only'],
+		examples: ['amxts upgrade', 'amxts upgrade --dry-run', 'amxts upgrade --no-build', 'amxts upgrade --to 0.2.0 --no-server', 'amxts upgrade --server-only'],
 		async run({ values }) {
 			const { upgrade } = await import('./upgrade.mjs');
-			await upgrade({ to: values.to, server: values.server !== false, serverOnly: values.serverOnly, dryRun: values.dryRun });
+			await upgrade({ to: values.to, server: values.server !== false, build: values.build !== false, serverOnly: values.serverOnly, dryRun: values.dryRun });
 		},
 	},
 	info: {

@@ -201,7 +201,8 @@ describe('the packages', () => {
 			const outcome = await upgrade({ dryRun: true }, { dir, registry, install });
 			expect(readFileSync(join(dir, 'package.json'), 'utf8')).toBe(text);
 			expect(outcome!.code).toBeNull();
-			expect(outcome!.build).toBeNull();
+			expect(outcome!.build).toBe('would build');
+			expect(summary(outcome!)).toContain('  ▲ amxts build would run: every plugin and module (--no-build leaves it out)');
 			expect(outcome!.server!.line).toBe(`the module of amxts ${PATCH} goes in once @amxts/core ${PATCH} is installed`);
 			expect(summary(outcome!)[0]).toBe(`Dry run: amxts ${PATCH}, nothing was changed`);
 		});
@@ -219,6 +220,9 @@ describe('the packages', () => {
 			process.exitCode = 0;
 			expect(outcome).toBeNull();
 			expect(JSON.parse(readFileSync(join(dir, 'handed.json'), 'utf8'))).toEqual({ args: ['upgrade', '--to', NEXT_CORE, '--no-server'], from: { '@amxts/core': CORE } });
+			await upgrade({ server: false, build: false, to: NEXT_CORE }, { dir, registry, install: async () => {} });
+			process.exitCode = 0;
+			expect(JSON.parse(readFileSync(join(dir, 'handed.json'), 'utf8')).args).toEqual(['upgrade', '--to', NEXT_CORE, '--no-server', '--no-build']);
 		});
 	});
 });
@@ -376,6 +380,7 @@ test('the whole run, as a user runs it: packages, code, build, server and the su
 		expect(dry.out).toContain('task upgrade --report');
 		expect(dry.out).toContain('--dry-run\n');
 		expect(dry.out).not.toContain('task build');
+		expect(dry.out).toContain('◇ Build: amxts build would run after the rewrites (--no-build leaves it out)\n');
 		expect(readFileSync(join(game, 'addons', 'amxmodx', 'modules', 'amxts_amxx.dll'))).toEqual(moduleOf('0.0.9'));
 
 		const run = amxts(['upgrade', '--to', CORE], dir, { AMXTS_RELEASE_URL: release });
@@ -403,6 +408,21 @@ test('the whole run, as a user runs it: packages, code, build, server and the su
 			'',
 		].join('\n'));
 		expect(amxts(['build'], dir).out).not.toContain('the server runs');
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test('--no-build leaves the build out, and says how to run it', () => {
+	const dir = mkdtempSync(join(tmpdir(), 'amxts-upgrade-'));
+	try {
+		standInProject(dir, CORE, CLI_API);
+		writeFileSync(join(dir, 'package.json'), `{ "name": "my-server", "devDependencies": { "@amxts/core": "^${CORE}" } }\n`);
+		const run = amxts(['upgrade', '--to', CORE, '--no-build', '--no-server'], dir);
+		expect(run.code).toBe(0);
+		expect(run.out).toContain('task upgrade --report');
+		expect(run.out).not.toContain('task build');
+		expect(run.out).toContain('  ▲ not built (--no-build): amxts build builds it\n');
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

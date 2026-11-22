@@ -1,6 +1,6 @@
 // `amxts upgrade`: a project moved to another amxts release in one command.
 //
-//   amxts upgrade [--to <version>] [--no-server] [--server-only] [--dry-run]
+//   amxts upgrade [--to <version>] [--no-build] [--no-server] [--server-only] [--dry-run]
 //
 // 1. The packages: the core to the latest version on the registry npm is set
 //    to, or to --to; every other @amxts/ package in package.json - the
@@ -11,7 +11,7 @@
 //    (`@amxts/resemiclip` is `@amxts/semiclip`); then the project's own
 //    package manager installs.
 // 2. The code: the new core's rewrites (its `upgrade` task), each change listed.
-// 3. The build: `amxts build`.
+// 3. The build: `amxts build`, unless --no-build; a dry run names it.
 // 4. The server in AMXTS_SERVER: its module, and its compiler where it has
 //    one, from the release of the new version (server-update.mjs).
 // 5. A summary: the versions, the files rewritten, what to check by hand and
@@ -139,10 +139,18 @@ function rewriteCode(core, dryRun) {
  * @property {string} version the release the project moves to: the core's version
  * @property {{ name: string, from: string | null, version: string | null, to: string | null, spec: string }[]} packages each @amxts/ package, and the version and spec it goes to; null when left as it is
  * @property {{ files: string[], left: { file: string, line: number, why: string }[] } | null} code what the rewrites changed and left; null when they did not run
- * @property {'built' | 'failed' | null} build how the build went; null when it did not run
+ * @property {'built' | 'failed' | 'would build' | 'skipped' | null} build how the build went, or that a dry run would run it, or that --no-build left it out; null when the core to build with is not installed
  * @property {import('./server-update.mjs').ServerOutcome | null} server the server step's result; null with --no-server
  * @property {boolean} dryRun whether nothing was changed
  */
+
+/** The summary's line for each way the build went. */
+const BUILD_LINES = {
+	'built': `  ${c.green('✔')} built`,
+	'failed': `  ${c.red('✖')} the build failed: see above`,
+	'would build': `  ${c.yellow('▲')} amxts build would run: every plugin and module (--no-build leaves it out)`,
+	'skipped': `  ${c.yellow('▲')} not built (--no-build): amxts build builds it`,
+};
 
 /**
  * What `amxts upgrade` prints last.
@@ -164,18 +172,18 @@ export function summary(outcome) {
 			for (const each of outcome.code.left) lines.push(`      ${c.dim(`${each.file}:${each.line}`)}  ${each.why}`);
 		}
 	}
-	if (outcome.build) lines.push(outcome.build === 'built' ? `  ${c.green('✔')} built` : `  ${c.red('✖')} the build failed: see above`);
+	if (outcome.build) lines.push(BUILD_LINES[outcome.build]);
 	if (outcome.server) lines.push(`  ${outcome.server.ok ? c.green('✔') : c.yellow('▲')} server: ${outcome.server.line}`);
 	return lines;
 }
 
 /**
  * `amxts upgrade`.
- * @param {{ to?: string, server?: boolean, serverOnly?: boolean, dryRun?: boolean }} options
+ * @param {{ to?: string, server?: boolean, build?: boolean, serverOnly?: boolean, dryRun?: boolean }} options
  * @param {{ dir?: string, registry?: import('./registry.mjs').Registry, install?: typeof installProject }} [deps] what the tests replace
  * @returns {Promise<Outcome | null>} what was done; null when it was handed to the project's command
  */
-export async function upgrade({ to, server = true, serverOnly = false, dryRun = false }, { dir = needProject(), registry = npmRegistry(dir), install = installProject } = {}) {
+export async function upgrade({ to, server = true, build = true, serverOnly = false, dryRun = false }, { dir = needProject(), registry = npmRegistry(dir), install = installProject } = {}) {
 	const handedFrom = process.env.AMXTS_UPGRADE_FROM ? JSON.parse(process.env.AMXTS_UPGRADE_FROM) : null;
 	if (!handedFrom) banner(VERSION, dryRun ? 'upgrade --dry-run' : 'upgrade');
 	if (to !== undefined && !VERSION_TEXT.test(to)) throw new CliError(`--to ${to}: a version, such as 0.2.0`);
@@ -218,7 +226,7 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 	const commandVersion = command ? readJson(join(command, 'package.json'))?.version : null;
 	if (command && commandVersion && commandVersion !== VERSION) {
 		log.step(`Going on with the project's amxts ${commandVersion}`);
-		const args = [join(command, 'bin', 'amxts.mjs'), 'upgrade', '--to', version, ...(server ? [] : ['--no-server'])];
+		const args = [join(command, 'bin', 'amxts.mjs'), 'upgrade', '--to', version, ...(server ? [] : ['--no-server']), ...(build ? [] : ['--no-build'])];
 		const result = spawnSync(process.execPath, args, { cwd: dir, stdio: 'inherit', env: { ...process.env, AMXTS_UPGRADE_FROM: JSON.stringify(from) } });
 		process.exitCode = result.status ?? 1;
 		return null;
@@ -244,7 +252,13 @@ export async function upgrade({ to, server = true, serverOnly = false, dryRun = 
 		log.step(`Code: rewritten by @amxts/core ${version} once it is installed`);
 	}
 
-	if (core && !dryRun) {
+	if (!build) {
+		outcome.build = 'skipped';
+	} else if (dryRun) {
+		// A full build is a heavy job: a dry run names it.
+		log.step('Build: amxts build would run after the rewrites (--no-build leaves it out)');
+		outcome.build = 'would build';
+	} else if (core) {
 		log.step('Build');
 		await prepare(core, { quiet: true });
 		outcome.build = runTask(core, 'build') === 0 ? 'built' : 'failed';
