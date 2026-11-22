@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.3.4
+
+> For amxts 0.3.3 and later.
+
+- `amxts upgrade --no-build` rewrites the project and leaves the build to you; a dry run says it would build.
+- `amxts build --against <folder>` takes a server's plugins folder and checks the module versions its plugins call.
+- `amxts test` in a copy of a project under `node_modules/` finds Vitest the way Node does.
+
+### 👉 Changelog
+
+[compare changes](https://github.com/amxts/amxts-cli/compare/v0.3.3...v0.3.4)
+
+### 🚀 Enhancements
+
+- **build:** `--against` a server's plugins folder ([2c12000](https://github.com/amxts/amxts-cli/commit/2c12000))
+- **upgrade:** `--no-build`, and a dry run names the build ([9ebb847](https://github.com/amxts/amxts-cli/commit/9ebb847))
+
+### 🩹 Fixes
+
+- **test:** Vitest found above a copy of the project ([66abd0a](https://github.com/amxts/amxts-cli/commit/66abd0a))
+
+### 📖 Documentation
+
+- **typecheck:** Checks the plugins as the build does too ([2b68ba3](https://github.com/amxts/amxts-cli/commit/2b68ba3))
+
+### ❤️ Contributors
+
+- Ernest Manukyan ([@kukson777](https://github.com/kukson777))
+
 ## v0.3.3
 
 > For the 0.3.3 core. It drives no older core, and a 0.3.2 command drives no 0.3.3 core: update both, the command first, then `npx amxts upgrade`.
