@@ -36,6 +36,13 @@ test('a module\'s range for the core, as npm reads it', () => {
 	expect(satisfies('9.9.9', '*')).toBe(true);
 });
 
+/** A stand-in Vitest in a project: it prints what it was given. */
+function vitestIn(dir: string) {
+	mkdirSync(join(dir, 'node_modules', 'vitest'));
+	writeFileSync(join(dir, 'node_modules', 'vitest', 'package.json'), '{ "name": "vitest", "exports": { "./package.json": "./package.json" } }\n');
+	writeFileSync(join(dir, 'node_modules', 'vitest', 'vitest.mjs'), 'console.log("vitest", ...process.argv.slice(2));\n');
+}
+
 describe('the project\'s core', () => {
 	test('the command runs the core\'s task in the project', () => {
 		inTemp((dir) => {
@@ -77,11 +84,24 @@ describe('the project\'s core', () => {
 	test('test runs the project\'s Vitest when it has one', () => {
 		inTemp((dir) => {
 			standInProject(dir, CORE, CLI_API);
-			mkdirSync(join(dir, 'node_modules', 'vitest'));
-			writeFileSync(join(dir, 'node_modules', 'vitest', 'vitest.mjs'), 'console.log("vitest", ...process.argv.slice(2));\n');
+			vitestIn(dir);
 			const run = amxts(['test', 'hello'], dir);
 			expect(run.out).toBe('vitest run hello\n');
 			expect(run.code).toBe(0);
+		});
+	});
+
+	test('test hands a flag and its value to Vitest as they are, in a copy of the project under node_modules too', () => {
+		inTemp((dir) => {
+			standInProject(dir, CORE, CLI_API);
+			vitestIn(dir);
+			expect(amxts(['test', '--maxWorkers', '1'], dir).out).toBe('vitest run --maxWorkers 1\n');
+			expect(amxts(['test', '--maxWorkers=1', '-t', 'round', 'hello'], dir).out).toBe('vitest run --maxWorkers=1 -t round hello\n');
+			// A copy has no node_modules of its own: the project's Vitest, above it.
+			const copy = join(dir, 'node_modules', '.copy');
+			mkdirSync(copy);
+			writeFileSync(join(copy, 'package.json'), '{ "name": "my-server", "private": true }\n');
+			expect(amxts(['test', '--maxWorkers', '1'], copy).out).toBe('vitest run --maxWorkers 1\n');
 		});
 	});
 

@@ -8,7 +8,8 @@
 // prepare) are tasks of the project's core, run on this Node (core.mjs);
 // test runs the project's Vitest, or bun test.
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { GLOBAL_FLAGS, parseArgs } from './args.mjs';
 import { needBun, needProject, projectCore, runTask, runTaskOrExit, setting, startTask, VERSION } from './core.mjs';
@@ -28,6 +29,16 @@ const OS_FLAG = { type: 'string', value: Object.keys(SYSTEMS).join('|'), descrip
 function warnServer(core, os) {
 	const mismatch = serverMismatch(core, needProject(), os);
 	if (mismatch) (mismatch.warn ? log.warn : log.info)(mismatch.line);
+}
+
+/** The project's Vitest to run, or null. */
+function vitestOf(dir) {
+	try {
+		const file = join(dirname(createRequire(join(dir, 'package.json')).resolve('vitest/package.json')), 'vitest.mjs');
+		return existsSync(file) ? file : null;
+	} catch {
+		return null;
+	}
 }
 
 /** The line about a newer amxts, once a day at most (update-check.mjs). */
@@ -211,9 +222,11 @@ export const COMMANDS = {
 		async run({ raw }) {
 			// The tests run on the project's core: one this command can drive.
 			await projectCore();
-			// A project with Vitest tests on Node; any other on bun test.
-			const vitest = join(needProject(), 'node_modules', 'vitest', 'vitest.mjs');
-			const result = await run(existsSync(vitest)
+			// A project with Vitest tests on Node; any other on bun test. Vitest is
+			// found as Node finds a package: a copy of the project under
+			// node_modules takes the one above it, as it takes the core.
+			const vitest = vitestOf(needProject());
+			const result = await run(vitest
 				? [process.execPath, vitest, ...(raw.includes('--watch') ? [] : ['run']), ...raw]
 				: [needBun(), 'test', ...raw]);
 			process.exitCode = result.code;
