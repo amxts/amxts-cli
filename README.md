@@ -73,7 +73,7 @@ npx amxts rcon amxts_plugins   # a command on the server, over rcon
 npx amxts build --deploy   # build once and deploy
 npx amxts build --os linux # for a Linux server, when AMXTS_SERVER does not show it
 npx amxts build --watch    # build again on every save, without deploying
-npx amxts typecheck        # check the project as the editor does
+npx amxts typecheck        # check the project as the editor and the build do
 npx amxts test             # the tests, on a fake server
 npx amxts module add menu-core
 npx amxts upgrade          # move the project and its server to the latest amxts

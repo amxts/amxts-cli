@@ -189,7 +189,7 @@ export const COMMANDS = {
 		},
 	},
 	typecheck: {
-		description: 'Check the plugins and amxts.config.ts as the editor does',
+		description: 'Check the plugins and amxts.config.ts as the editor and the build do',
 		usage: 'amxts typecheck',
 		examples: ['amxts typecheck'],
 		async run() {

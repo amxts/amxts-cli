@@ -7,7 +7,7 @@ Counter-Strike 1.6 plugins in TypeScript, built with [amxts](https://amxts.githu
 - `{{install}}` - installs the core, the modules and the tools
 - `{{run.dev}}` - builds, deploys to the server in `AMXTS_SERVER` and again on every save
 - `{{run.build}}` - builds the plugins into `dist/`, with `plugins.ini`
-- `{{run.typecheck}}` - checks the plugins as the editor does
+- `{{run.typecheck}}` - checks the plugins as the editor and the build do
 - `{{run.test}}` - runs the tests in `test/` on a fake server
 <!-- #if lint -->
 - `{{run.lint}}` - oxlint and oxfmt check the code; `lint:fix` fixes what they can

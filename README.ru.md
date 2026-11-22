@@ -74,7 +74,7 @@ npx amxts rcon amxts_plugins   # команда на сервере, по rcon
 npx amxts build --deploy   # собрать один раз и выложить
 npx amxts build --os linux # для Linux-сервера, когда по AMXTS_SERVER этого не видно
 npx amxts build --watch    # собирать при каждом сохранении, не выкладывая
-npx amxts typecheck        # проверить проект так, как это делает редактор
+npx amxts typecheck        # проверить проект так, как это делают редактор и сборка
 npx amxts test             # тесты на поддельном сервере
 npx amxts module add menu-core
 npx amxts upgrade          # перевести проект и его сервер на последний amxts
